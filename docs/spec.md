@@ -65,7 +65,7 @@ BibbleVM maintains a single global state:
   - Stack slot indexes.
   - Data section indexes.
   - Offsets for jumps and memory access.
-- **Endianness**: Little-endian encoding for multi-byte operands.
+- **Endianness**: Big-endian encoding for multi-byte operands.
 - **Alignment**: No.
 
 ---
@@ -77,7 +77,7 @@ Instructions can be grouped by purpose:
 - **Control Flow**: E.g JMP, JEQ, JLT, CALL, RET.
 - **Memory / Object Management**: e.g ALLOCATE, FREE, READ, WRITE, NEWUNIQUE, NEWSHARED.
 - **Miscellaneous**: E.g NOP. <!-- TODO: add more here -->
-- **Debug**: E.g BREAKPOINT, DUMPSTACK.
+- **Debug**: E.g BRK.
 
 ---
 
@@ -158,7 +158,7 @@ These values represent stack slots BEFORE stack effect is applied.
 |       NEG        |     0x1A     |      -       |       -       |      ACC ← -ACC      | Negates ACC.                                                                                                                                                                          | -                         | 1A                         |
 |       NOT        |     0x1B     |      -       |       -       |      ACC ← ~ACC      | Bitwise NOT of ACC.                                                                                                                                                                   | -                         | 1B                         |
 |       ADD2       |     0x1C     |      -       |     Pop 2     |    ACC ← S1 + S0     | Pops two integers, adds into ACC.                                                                                                                                                     | -                         | 1C                         |
-|       SUB2       |     0x1D     |      -       |     Pop 2     |    ACC ← S1 - S0     | Pops two integers, subtracts top from second.                                                                                                                                         | -                         | 1D                         |
+|       SUB2       |     0x1D     |      -       |     Pop 2     |    ACC ← S1 - S0     | Pops two integers, subtracts top from second into ACC.                                                                                                                                | -                         | 1D                         |
 |       MUL2       |     0x1E     |      -       |     Pop 2     |    ACC ← S1 * S0     | Pops two integers, multiplies into ACC.                                                                                                                                               | -                         | 1E                         |
 |       DIV2       |     0x1F     |      -       |     Pop 2     |    ACC ← S1 / S0     | Pops two integers, divides second by top into ACC.                                                                                                                                    | -                         | 1F                         |
 |       MOD2       |     0x20     |      -       |     Pop 2     |    ACC ← S1 % S0     | Pops two integers, computes modulo into ACC.                                                                                                                                          | -                         | 20                         |
@@ -231,7 +231,7 @@ These values represent stack slots BEFORE stack effect is applied.
 |     CONST_ST     |     0x78     |   i8 value   |    Push 1     |          -           | Pushes an immediate `value` to the stack.                                                                                                                                             | -                         | 78 XX                      |
 |    CONST32_ST    |     0x79     |  i32 value   |    Push 1     |          -           | Pushes an immediate `value` to the stack.                                                                                                                                             | -                         | 79 XX XX XX XX             |
 |    CONST64_ST    |     0x7A     |  i64 value   |    Push 1     |          -           | Pushes an immediate `value` to the stack.                                                                                                                                             | -                         | 7A XX XX XX XX XX XX XX XX |
-|       LOAD       |     0x7B     |  i16 index   |       -       |   ACC ← S[`index`]   | Load a stack value located at the unsigned immediate `index` into ACC.                                                                                                                | -                         | 7B XX XX                   |
+|       LOAD       |     0x7B     |  i16 index   |       -       |  ACC ← S\[`index`\]  | Load a stack value located at the unsigned immediate `index` into ACC.                                                                                                                | -                         | 7B XX XX                   |
 |     LOAD_ST      |     0x7C     |  i16 index   |    Push 1     |          -           | Load a stack value located at the unsigned immediate `index` and pushes it to the stack.                                                                                              | -                         | 7C XX XX                   |
 |      STORE       |     0x7D     |  i16 index   |       -       |          -           | Store the value in ACC into the stack slot located at the unsigned immediate `index`.                                                                                                 | -                         | 7D XX XX                   |
 |     STORE_ST     |     0x7E     |  i16 index   |     Pop 1     |          -           | Pops a value from the stack and moves it into the stack slot located at the unsigned immediate `index`.                                                                               | -                         | 7E XX XX                   |
