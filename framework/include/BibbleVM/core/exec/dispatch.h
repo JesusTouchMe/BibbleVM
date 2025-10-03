@@ -1,7 +1,7 @@
 // Copyright 2025 JesusTouchMe
 
-#ifndef BIBBLEVM_CORE_INTERPRETER_H
-#define BIBBLEVM_CORE_INTERPRETER_H 1
+#ifndef BIBBLEVM_CORE_DISPATCH_H
+#define BIBBLEVM_CORE_DISPATCH_H 1
 
 #include "BibbleVM/core/bytecode/bytecode_stream.h"
 
@@ -13,11 +13,12 @@ namespace bibble {
     class VM;
     using DispatchFn = bool(*)(VM&, BytecodeStream&);
     using DispatchTable = std::array<DispatchFn, 256>;
-    using DispatchTableExt = std::array<DispatchTable, 65536>;
+    using DispatchTableExt = std::array<DispatchFn, 65536>;
 
-    // a world shattering 514 kilobytes of memory per active full dispatcher
+    // a world shattering 514 kilobytes of memory per active full dispatcher table
+    // TODO: optimize the above
 
-    void InitDispatchers(VMConfig& config, DispatchTable& dispatchTable, DispatchTableExt& dispatchTableExt);
+    void InitDispatchers(const VMConfig& config, DispatchTable& dispatchTable, DispatchTableExt& dispatchTableExt);
 }
 
-#endif // BIBBLEVM_CORE_INTERPRETER_H
+#endif // BIBBLEVM_CORE_DISPATCH_H
