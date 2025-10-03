@@ -3,8 +3,36 @@
 #include "BibbleVM/core/vm.h"
 
 namespace bibble {
-    Value& VM::accumulator() {
+    Value& VM::acc() {
         return mAccumulator;
+    }
+
+    Value& VM::sp() {
+        return mStackPointer;
+    }
+
+    Value& VM::pc() {
+        return mProgramCounter;
+    }
+
+    Stack& VM::stack() {
+        return mStack;
+    }
+
+    bool VM::push(Value value) {
+        Frame* frame = mStack.getTopFrame();
+        if (frame == nullptr || !frame->isWithinBounds(sp().integer())) return false;
+
+        (*frame)[sp().integer()++] = value;
+
+        return true;
+    }
+
+    std::optional<Value> VM::pop() {
+        Frame* frame = mStack.getTopFrame();
+        if (frame == nullptr || !frame->isWithinBounds(sp().integer() - 1)) return std::nullopt;
+
+        return (*frame)[--sp().integer()];
     }
 
     VM::VM(VMConfig config)

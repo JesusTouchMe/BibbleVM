@@ -6,7 +6,7 @@ BibbleVM Instruction Set Architecture v0.1-predev
 ## 1.1 Execution Model
 BibbleVM is a stack-based machine with three dedicated registers:
 - **Accumulator (ACC)**: Holds the result of most instructions. Subsequent instructions can consume ACC directly or move it to the stack.
-- **Stack Pointer (SP)**: Holds the top of the current stack frame as an index from its base. SP is implicitly managed by push/pop instructions, but may be manually modified if required.
+- **Stack Pointer (SP)**: Holds the index above the top of the current stack frame as an index from its base. SP is implicitly managed by push/pop instructions, but may be manually modified if required.
 - **Program Counter (PC)**: Holds the address of the next instruction to execute. PC is internal-only and cannot be accessed directly by bytecode. Control flow instructions modify PC implicitly.
 
 Execution proceeds sequentially through instructions unless a **control flow instruction** modifies PC.

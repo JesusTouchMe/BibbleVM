@@ -18,20 +18,24 @@ namespace bibble {
     class Value {
     public:
         template<typename T>
-        explicit Value(T value)
+        Value(T value)
             : mValue(value) {}
 
         Value() : mValue(0) {}
 
-        u64& integer() { return mValue.integer; }
-        u64  integer() const { return mValue.integer; }
+        i64& integer() { return mValue.integer; }
+        i64  integer() const { return mValue.integer; }
+
+        u64& uinteger() { return mValue.uinteger; }
+        u64 uinteger() const { return mValue.uinteger; }
 
         double& floating() { return mValue.floating; }
         double  floating() const { return mValue.floating; }
 
     private:
         union Generic {
-            u64 integer;
+            i64 integer;
+            u64 uinteger;
             double floating;
         } mValue;
     };
