@@ -2,7 +2,7 @@
 
 #include "BibbleVM/core/bytecode/bytecode_stream.h"
 
-#include <algorithm>
+#include <cstring>
 
 namespace bibble {
     BytecodeStream::BytecodeStream(std::span<const u8> bytes)
@@ -21,7 +21,7 @@ namespace bibble {
         return mBytes.size() - mPosition;
     }
 
-    bool BytecodeStream::skip(size_t count) {
+    bool BytecodeStream::skip(i64 count) {
         if (count > getRemaining()) return false;
         mPosition += count;
         return true;
@@ -83,6 +83,30 @@ namespace bibble {
 
     std::optional<i64> BytecodeStream::fetchI64() {
         return fetchU64();
+    }
+
+    std::optional<float> BytecodeStream::fetchFloat() {
+        static_assert(sizeof(float) == sizeof(u32), "float and u32 sizes don't match");
+
+        std::optional<u32> raw = fetchU32();
+        if (!raw.has_value()) return std::nullopt;
+
+        float value;
+        std::memcpy(&value, &raw, sizeof(value));
+
+        return value;
+    }
+
+    std::optional<double> BytecodeStream::fetchDouble() {
+        static_assert(sizeof(double) == sizeof(u64), "double and u64 sizes don't match");
+
+        std::optional<u64> raw = fetchU64();
+        if (!raw.has_value()) return std::nullopt;
+
+        double value;
+        std::memcpy(&value, &raw, sizeof(value));
+
+        return value;
     }
 
     std::optional<std::variant<ByteOpcode, ExtendedOpcode>> BytecodeStream::fetchOpcode() {

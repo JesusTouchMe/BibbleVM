@@ -15,6 +15,9 @@ namespace bibble {
 
         bool isWithinBounds(i64 index) const;
 
+        Value& acc();
+        Value& sp();
+
         Value& operator[](size_t index);
         const Value& operator[](size_t index) const;
 
@@ -22,6 +25,10 @@ namespace bibble {
         std::unique_ptr<Frame> mPrevious;
         std::unique_ptr<Value[]> mData;
         size_t mSize;
+
+        // Registers saved in stack frames
+        Value mAccumulator;
+        Value mStackPointer;
     };
 }
 

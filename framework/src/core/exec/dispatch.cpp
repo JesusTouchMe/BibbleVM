@@ -8,26 +8,28 @@
 #define REGISTER_DISPATCH(table, opcode) table[static_cast<size_t>(ByteOpcode::opcode)] = Dispatch_##opcode
 #define REGISTER_DISPATCH_EXT(table, opcode) table[static_cast<size_t>(ExtendedOpcode::opcode)] = Dispatch_##opcode
 
-#define DISPATCH_SUCCESS true
-#define DISPATCH_FAILURE false
-#define DISPATCH_SUCCEED() return DISPATCH_SUCCESS
-#define DISPATCH_FAIL() return DISPATCH_FAILURE
+#define DISPATCH_SUCCEED() return true
+#define DISPATCH_FAIL() do { vm.exit(-2); return false; } while(0)
 
 namespace bibble {
     DEFINE_DISPATCH(NOP) {
         DISPATCH_SUCCEED();
     }
 
-    DEFINE_DISPATCH(HLT) { // TODO: if the vm is embedded and shouldn't randomly exit the host, exit only the VM in a special way
+    DEFINE_DISPATCH(HLT) {
         std::optional<i8> exitCode = code.fetchI8();
         if (!exitCode.has_value()) DISPATCH_FAIL();
 
-        std::exit(exitCode.value());
+        vm.exit(exitCode.value());
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(TRAP) {
         std::optional<u8> trapCode = code.fetchU8();
         if (!trapCode.has_value()) DISPATCH_FAIL();
+
+        if (!vm.trap(trapCode.value())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
@@ -36,12 +38,20 @@ namespace bibble {
         std::optional<u8> trapCode = code.fetchU8();
         if (!trapCode.has_value()) DISPATCH_FAIL();
 
+        if (vm.acc().integer() == 0) {
+            if (!vm.trap(trapCode.value())) DISPATCH_FAIL();
+        }
+
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(TRAP_IF_NOT_ZERO) {
         std::optional<u8> trapCode = code.fetchU8();
         if (!trapCode.has_value()) DISPATCH_FAIL();
+
+        if (vm.acc().integer() != 0) {
+            if (!vm.trap(trapCode.value())) DISPATCH_FAIL();
+        }
 
         DISPATCH_SUCCEED();
     }
@@ -715,75 +725,447 @@ namespace bibble {
     }
 
     DEFINE_DISPATCH(FADD_IMM) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().floating() += value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FSUB_IMM) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().floating() -= value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FMUL_IMM) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().floating() *= value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FDIV_IMM) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().floating() /= value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FADD_IMM_ST) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        i64 index = vm.sp().integer() - 1;
+        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+
+        (*frame)[index].floating() += value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FSUB_IMM_ST) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        i64 index = vm.sp().integer() - 1;
+        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+
+        (*frame)[index].floating() -= value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FMUL_IMM_ST) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        i64 index = vm.sp().integer() - 1;
+        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+
+        (*frame)[index].floating() *= value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(FDIV_IMM_ST) {
+        std::optional<float> value = code.fetchFloat();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        i64 index = vm.sp().integer() - 1;
+        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+
+        (*frame)[index].floating() /= value.value();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_EQ) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().integer() == s0->integer();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_NE) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().integer() != s0->integer();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_LT) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().integer() < s0->integer();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_GT) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().integer() > s0->integer();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_LTE) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().integer() <= s0->integer();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_GTE) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().integer() >= s0->integer();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_EQ) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().floating() == s0->floating();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_NE) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().floating() != s0->floating();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_LT) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().floating() < s0->floating();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_GT) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().floating() > s0->floating();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_LTE) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().floating() <= s0->floating();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_GTE) {
+        std::optional<Value> s0 = vm.pop();
+        if (!s0.has_value()) DISPATCH_FAIL();
+
+        vm.acc().boolean() = vm.acc().floating() >= s0->floating();
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_EQ0) {
+        vm.acc().boolean() = vm.acc().integer() == 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_NE0) {
+        vm.acc().boolean() = vm.acc().integer() != 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_LT0) {
+        vm.acc().boolean() = vm.acc().integer() < 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_GT0) {
+        vm.acc().boolean() = vm.acc().integer() > 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_LTE0) {
+        vm.acc().boolean() = vm.acc().integer() <= 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CMP_GTE0) {
+        vm.acc().boolean() = vm.acc().integer() >= 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_EQ0) {
+        vm.acc().boolean() = vm.acc().floating() == 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_NE0) {
+        vm.acc().boolean() = vm.acc().floating() != 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_LT0) {
+        vm.acc().boolean() = vm.acc().floating() < 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_GT0) {
+        vm.acc().boolean() = vm.acc().floating() > 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_LTE0) {
+        vm.acc().boolean() = vm.acc().floating() <= 0;
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(FCMP_GTE0) {
+        vm.acc().boolean() = vm.acc().floating() >= 0;
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(PUSH_ACC) {
+        if (!vm.push(vm.acc())) DISPATCH_FAIL();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(PUSH_SP) {
+        if (!vm.push(vm.sp())) DISPATCH_FAIL();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(POP_ACC) {
+        std::optional<Value> value = vm.pop();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc() = value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(POP_SP) {
+        std::optional<Value> value = vm.pop();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.sp() = value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(POP_DISCARD) {
+        std::optional<u8> count = code.fetchU8();
+        if (!count.has_value()) DISPATCH_FAIL();
+
+        if (count.value() > vm.sp().integer()) DISPATCH_FAIL();
+
+        vm.sp().integer() -= count.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(CONST) {
+        std::optional<i8> value = code.fetchI8();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().integer() = static_cast<i64>(value.value());
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(CONST32) {
+        std::optional<i32> value = code.fetchI32();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().integer() = static_cast<i64>(value.value());
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(CONST64) {
+        std::optional<i64> value = code.fetchI64();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.acc().integer() = value.value();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(CONST_ST) {
+        std::optional<i8> value = code.fetchI8();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.push(value.value());
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(CONST32_ST) {
+        std::optional<i32> value = code.fetchI32();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.push(value.value());
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(CONST64_ST) {
+        std::optional<i64> value = code.fetchI64();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+        vm.push(value.value());
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(LOAD) {
+        std::optional<i16> index = code.fetchI16();
+        if (!index.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+
+        vm.acc() = (*frame)[index.value()];
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(LOAD_ST) {
+        std::optional<i16> index = code.fetchI16();
+        if (!index.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+
+        if (!vm.push((*frame)[index.value()])) DISPATCH_FAIL();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(STORE) {
+        std::optional<i16> index = code.fetchI16();
+        if (!index.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+
+       (*frame)[index.value()] = vm.acc();
+
+        DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(STORE_ST) {
+        std::optional<i16> index = code.fetchI16();
+        if (!index.has_value()) DISPATCH_FAIL();
+
+        Frame* frame = vm.stack().getTopFrame();
+        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+
+        std::optional<Value> value = vm.pop();
+        if (!value.has_value()) DISPATCH_FAIL();
+
+       (*frame)[index.value()] = value.value();
+
+        DISPATCH_SUCCEED();
     }
 
-    void InitDispatchers(VMConfig& config, DispatchTable& dispatchTable, DispatchTableExt& dispatchTableExt) {
+    DEFINE_DISPATCH(JMP) {
+        std::optional<i16> branch = code.fetchI16();
+        if (!branch.has_value()) DISPATCH_FAIL();
+
+        code.skip(branch.value());
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(JZ) {
+        std::optional<i16> branch = code.fetchI16();
+        if (!branch.has_value()) DISPATCH_FAIL();
+
+        if (!vm.acc().boolean()) code.skip(branch.value());
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(JNZ) {
+        std::optional<i16> branch = code.fetchI16();
+        if (!branch.has_value()) DISPATCH_FAIL();
+
+        if (vm.acc().boolean()) code.skip(branch.value());
+
+        DISPATCH_SUCCEED();
+    }
+
+    void InitDispatchers(const VMConfig& config, DispatchTable& dispatchTable, DispatchTableExt& dispatchTableExt) {
         REGISTER_DISPATCH(dispatchTable, NOP);
         REGISTER_DISPATCH(dispatchTable, HLT);
         REGISTER_DISPATCH(dispatchTable, TRAP);
@@ -865,6 +1247,30 @@ namespace bibble {
         REGISTER_DISPATCH(dispatchTable, FSUB_IMM_ST);
         REGISTER_DISPATCH(dispatchTable, FMUL_IMM_ST);
         REGISTER_DISPATCH(dispatchTable, FDIV_IMM_ST);
+        REGISTER_DISPATCH(dispatchTable, CMP_EQ);
+        REGISTER_DISPATCH(dispatchTable, CMP_NE);
+        REGISTER_DISPATCH(dispatchTable, CMP_LT);
+        REGISTER_DISPATCH(dispatchTable, CMP_GT);
+        REGISTER_DISPATCH(dispatchTable, CMP_LTE);
+        REGISTER_DISPATCH(dispatchTable, CMP_GTE);
+        REGISTER_DISPATCH(dispatchTable, FCMP_EQ);
+        REGISTER_DISPATCH(dispatchTable, FCMP_NE);
+        REGISTER_DISPATCH(dispatchTable, FCMP_LT);
+        REGISTER_DISPATCH(dispatchTable, FCMP_GT);
+        REGISTER_DISPATCH(dispatchTable, FCMP_LTE);
+        REGISTER_DISPATCH(dispatchTable, FCMP_GTE);
+        REGISTER_DISPATCH(dispatchTable, CMP_EQ0);
+        REGISTER_DISPATCH(dispatchTable, CMP_NE0);
+        REGISTER_DISPATCH(dispatchTable, CMP_LT0);
+        REGISTER_DISPATCH(dispatchTable, CMP_GT0);
+        REGISTER_DISPATCH(dispatchTable, CMP_LTE0);
+        REGISTER_DISPATCH(dispatchTable, CMP_GTE0);
+        REGISTER_DISPATCH(dispatchTable, FCMP_EQ0);
+        REGISTER_DISPATCH(dispatchTable, FCMP_NE0);
+        REGISTER_DISPATCH(dispatchTable, FCMP_LT0);
+        REGISTER_DISPATCH(dispatchTable, FCMP_GT0);
+        REGISTER_DISPATCH(dispatchTable, FCMP_LTE0);
+        REGISTER_DISPATCH(dispatchTable, FCMP_GTE0);
         REGISTER_DISPATCH(dispatchTable, PUSH_ACC);
         REGISTER_DISPATCH(dispatchTable, PUSH_SP);
         REGISTER_DISPATCH(dispatchTable, POP_ACC);
@@ -880,5 +1286,8 @@ namespace bibble {
         REGISTER_DISPATCH(dispatchTable, LOAD_ST);
         REGISTER_DISPATCH(dispatchTable, STORE);
         REGISTER_DISPATCH(dispatchTable, STORE_ST);
+        REGISTER_DISPATCH(dispatchTable, JMP);
+        REGISTER_DISPATCH(dispatchTable, JZ);
+        REGISTER_DISPATCH(dispatchTable, JNZ);
     }
 }

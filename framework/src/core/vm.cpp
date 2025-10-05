@@ -2,17 +2,16 @@
 
 #include "BibbleVM/core/vm.h"
 
+#include <algorithm>
+#include <iostream>
+
 namespace bibble {
     Value& VM::acc() {
-        return mAccumulator;
+        return mStack.getTopFrame()->acc();
     }
 
     Value& VM::sp() {
-        return mStackPointer;
-    }
-
-    Value& VM::pc() {
-        return mProgramCounter;
+        return mStack.getTopFrame()->sp();
     }
 
     Stack& VM::stack() {
@@ -20,6 +19,8 @@ namespace bibble {
     }
 
     bool VM::push(Value value) {
+        if (mExited) return false;
+
         Frame* frame = mStack.getTopFrame();
         if (frame == nullptr || !frame->isWithinBounds(sp().integer())) return false;
 
@@ -29,16 +30,49 @@ namespace bibble {
     }
 
     std::optional<Value> VM::pop() {
+        if (mExited) return std::nullopt;
+
         Frame* frame = mStack.getTopFrame();
         if (frame == nullptr || !frame->isWithinBounds(sp().integer() - 1)) return std::nullopt;
 
         return (*frame)[--sp().integer()];
     }
 
+    bool VM::trap(u8 code) {
+        if (mExited) return false;
+
+        if (code == 0) {
+            std::cout << acc().integer() << std::endl;
+        }
+
+        return true;
+    }
+
+    void VM::exit(int code) {
+        if (mExited) return;
+        mExitCode = code;
+        mExited = true;
+    }
+
+    int VM::getExitCode() {
+        return mExitCode;
+    }
+
+    bool VM::hasExited() const {
+        return mExited;
+    }
+
+    void VM::execute(const BytecodeStream& stream) {
+        if (mExited) return;
+
+        mInterpreter.execute(*this, stream);
+    }
+
     VM::VM(VMConfig config)
-        : mConfig(config) {}
+        : mConfig(config)
+        , mInterpreter(config) {}
 
     std::unique_ptr<VM> CreateVM(VMConfig config) {
-        return std::make_unique<VM>(config);
+        return std::unique_ptr<VM>(new VM(config));
     }
 }

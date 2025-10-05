@@ -32,6 +32,9 @@ namespace bibble {
         double& floating() { return mValue.floating; }
         double  floating() const { return mValue.floating; }
 
+        i64& boolean() { return mValue.integer; }
+        bool boolean() const { return mValue.integer != 0; }
+
     private:
         union Generic {
             i64 integer;
