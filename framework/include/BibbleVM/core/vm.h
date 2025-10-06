@@ -13,6 +13,9 @@
 #include <optional>
 
 namespace bibble {
+    static_assert(std::numeric_limits<float>::is_iec559, "float is not IEEE-754");
+    static_assert(std::numeric_limits<double>::is_iec559, "double is not IEEE-754");
+
     class VM {
     friend std::unique_ptr<VM> CreateVM(VMConfig config);
     public:

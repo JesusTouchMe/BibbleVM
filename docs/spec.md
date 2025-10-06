@@ -75,49 +75,107 @@ BibbleVM maintains a single global state:
 Instructions can be grouped by purpose:
 - **Arithmetic / Logical**: E.g. ADD, SUB, MUL, DIV, AND, OR, XOR.
 - **Stack / Register Manipulation**: E.g PUSH, POP, LOAD, STORE, CONST.
-- **Control Flow**: E.g JMP, JEQ, JLT, CALL, RET.
+- **Control Flow**: E.g JMP, JZ, JNZ, CALL, RET.
 - **Memory / Object Management**: e.g ALLOCATE, FREE, READ, WRITE, NEWUNIQUE, NEWSHARED.
-- **Miscellaneous**: E.g NOP. <!-- TODO: add more here -->
+- **Miscellaneous**: E.g NOP, TRAP, HLT.
 - **Debug**: E.g BRK.
 
 ---
 
-# 3. Instruction Set
+# 3. The `bbx` File Format
+Each `bbx` file contains the definitions of symbols, functions, classes and internal data used by the code in the executable or by the linker.
 
-## 3.1 Instruction Notation
+A `bbx` file consists of a stream of bytes. Multibyte data items are always stored in big-endian order.
+
+This chapter presents the `bbx` file format using pseudostructures written in a C++-like struct notation. The contents of the structures describing the `bbx` file format are referred to as _items_. Successive items are stored in the `bbx` file sequentially, without padding or alignment.
+
+This chapter defines its own set of data types representing file data: u8, u16, u32 and u64 represent an unsigned one-, two-, four- or eight-byte quantity respectively. An i in place of the u means that the type is signed.
+
+## 3.1 The `BBXFile` Structure
+A `bbx` file contains one of these:
+```
+BBXFile {
+  u32 magic;
+  u16 version;
+  DataSection data;
+  SymbolSection symbols;
+  Section strtab;
+  CodeSection code;
+  u8 extra_section_count;
+  Section extra_sections[extra_section_count];
+}
+```
+The items of the `BBXFile` struct are as follows:
+* **magic**: A magic number identifying the `bbx` file format. It has the value 0xB1BB1E69.
+* **version**: The bytecode version for VM legacy support.
+* **data**: The section storing all data ranging from strings to global variables ([3.2.2](#322-datasection-structure)).
+* **symbols**: The section storing all symbols to define functions and classes ([3.2.3](#323-symbolsection-structure)).
+* **strtab**: Section for holding all variable-length strings ([3.2.4](#324-strtabsection-structure)). Usually for fixed length strings of 8 bytes or more, making the firts 4 bytes `@STR` and the next 4 an index into strtab will result in a variable-length strtab string being used instead of a fixed-length.
+* **code**: The section storing all bytecode instructions ([3.2.5](#325-codesection-structure)).
+* **extra_section_count**: The amount of extra sections (nonstandard or optional) present in the file.
+* **extra_sections[]**: A table of structures ([3.2.1](#321-section-structure), [3.2.6](#326-extra-section-structures)).
+
+## 3.2 The `Section` Structures
+This chapter will define a base `Section` struct as well as several derivatives.
+
+A struct deriving from another struct(s) will place the items of the derived struct(s) before its own items in order of derive list.
+
+### 3.2.1 `Section` Structure
+```
+Section {
+  u8 name[8];
+  u32 size;
+}
+```
+
+### 3.2.2 `DataSection` Structure
+
+### 3.2.3 `SymbolSection` Structure
+
+### 3.2.4 `StrtabSection` Structure
+
+### 3.2.5 `CodeSection` Structure
+
+### 3.2.6 Extra Section Structures
+
+---
+
+# 4. Instruction Set
+
+## 4.1 Instruction Notation
 The following conventions are used throughout the next section to describe **stack effect**, **ACC effect** and operand usage.
 
-### 3.1.1 Terminology
+### 4.1.1 Terminology
 This section defines some common terms seen in the instruction set:
 - **integer**: A numeric value represented as a signed integer. Its size is either explicitly stated where it's used or should be assumed to be the same size as a stack slot (8 bytes).
 - **float**: A numeric value represented in IEEE 754 single- or double-precision format. The size of either explicitly stated where it's used or should be assumed to be the same size as a stack slot (8 bytes or double-precision).
 
-### 3.1.2 Register Operands
+### 4.1.2 Register Operands
 See [Section 1.1](#11-execution-model).
 - **ACC**: The accumulator register.
 - **SP**: The stack pointer register.
 - **PC**: The program counter register.
 
-### 3.1.3 Stack Operands
+### 4.1.3 Stack Operands
 - **S0**: Top of the stack as indicated by **SP**.
 - **S1**: Next value down from the top (second from top).
 - **S2, S3, Sn...**: Subsequent values down the stack.
 - **S[n]**: Stack slot at `n` starting at index 0 for the bottom.
-- `f` suffix means the value addresses is treated as a floating-point value.
+- `f` suffix means the value addressed is treated as a floating-point value.
 
 These values represent stack slots BEFORE stack effect is applied.
 
-### 3.1.4 Stack Effects
+### 4.1.4 Stack Effects
 - **Pop n**: Removes the top `n` values from the stack (`S0..S(n-1)`) and consumes them accordingly.
 - **Push n**: Pushes `n` values onto the stack.
 - **-**: Instruction does not modify the stack.
 
-### 3.1.5 ACC Effects
+### 4.1.5 ACC Effects
 - **ACC ← expr**: The accumulator is updated with the result of `expr`.
 - Use stack operands in `expr` to indicate used stack values.
 - **-**: Instruction does not modify ACC.
 
-### 3.1.6 Operand Column
+### 4.1.6 Operand Column
 - Lists instruction-specific operands encoded directly into the bytecode, such as stack indices, immediate values, or offsets.
 - Each operand is written in the form `(i|f)n operand-name`, where:
   - `i` indicates an **integer** value.
@@ -128,15 +186,15 @@ These values represent stack slots BEFORE stack effect is applied.
 - Operands appear directly after the opcode byte(s) in bytecode in the same order as they were written.
 - Use `-` if there are no operands.
 
-### 3.1.7 Notes Column
+### 4.1.7 Notes Column
 - Additional remarks or implementation details that don't fit in description.
 - Use `-` if there are no notes.
 
-### 3.1.8 Encoding Column
+### 4.1.8 Encoding Column
 - Shows how instructions should be encoded in bytecode.
 - `X` means any value, usually used for operands.
 
-## 3.2 Instructions
+## 4.2 Instructions
 
 |     Mnemonic     | Opcode (Hex) |   Operands   | Stack Effect  |      ACC Effect      | Description                                                                                                                                                                           | Notes                     | Encoding                   |
 |:----------------:|:------------:|:------------:|:-------------:|:--------------------:|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|----------------------------|

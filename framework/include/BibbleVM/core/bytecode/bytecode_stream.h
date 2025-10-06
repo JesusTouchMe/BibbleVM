@@ -12,9 +12,6 @@
 #include <variant>
 
 namespace bibble {
-    static_assert(std::numeric_limits<float>::is_iec559, "float is not IEEE-754");
-    static_assert(std::numeric_limits<double>::is_iec559, "double is not IEEE-754");
-
     class BytecodeStream {
     public:
         explicit BytecodeStream(std::span<const u8> bytes);
@@ -45,7 +42,7 @@ namespace bibble {
         std::optional<std::variant<ByteOpcode, ExtendedOpcode>> fetchOpcode();
 
     private:
-        std::span<const uint8_t> mBytes;
+        std::span<const u8> mBytes;
         size_t mPosition;
     };
 }
