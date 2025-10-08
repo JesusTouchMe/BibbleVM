@@ -2,8 +2,6 @@
 
 #include "BibbleVM/core/bytecode/section.h"
 
-#include <cstring>
-
 namespace bibble {
     Section::Section(std::span<u8> bytes)
         : mBytes(bytes) {}

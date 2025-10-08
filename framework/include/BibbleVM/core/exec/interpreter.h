@@ -11,7 +11,7 @@ namespace bibble {
     public:
         explicit Interpreter(const VMConfig& config);
 
-        void execute(VM& vm, BytecodeStream bytecode);
+        void execute(VM& vm, BytecodeReader bytecode);
 
     private:
         DispatchTable mDispatchTable{};

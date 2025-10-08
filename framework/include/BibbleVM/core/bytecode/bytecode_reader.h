@@ -12,9 +12,9 @@
 #include <variant>
 
 namespace bibble {
-    class BytecodeStream {
+    class BytecodeReader {
     public:
-        explicit BytecodeStream(std::span<const u8> bytes);
+        BytecodeReader(std::span<const u8> bytes, size_t startPosition);
 
         size_t getSize() const;
         size_t getPosition() const;

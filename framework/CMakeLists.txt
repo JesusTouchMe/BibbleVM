@@ -1,19 +1,20 @@
 cmake_minimum_required(VERSION 3.26)
 
 set(SOURCES
-    src/core/bytecode/bytecode_stream.cpp
+        src/core/bytecode/bytecode_reader.cpp
     src/core/exec/dispatch.cpp
     src/core/vm.cpp
     src/core/stack/frame.cpp
     src/core/stack/stack.cpp
     src/core/exec/interpreter.cpp
         src/core/bytecode/section.cpp
+        src/core/bytecode/structs.cpp
 )
 
 set(HEADERS
     include/BibbleVM/core/bytecode/opcodes.h
     include/BibbleVM/core/vm.h
-    include/BibbleVM/core/bytecode/bytecode_stream.h
+        include/BibbleVM/core/bytecode/bytecode_reader.h
     include/BibbleVM/core/exec/dispatch.h
     include/BibbleVM/config.h
     include/BibbleVM/core/value/value.h
@@ -21,6 +22,7 @@ set(HEADERS
     include/BibbleVM/core/stack/stack.h
     include/BibbleVM/core/exec/interpreter.h
         include/BibbleVM/core/bytecode/section.h
+        include/BibbleVM/core/bytecode/structs/data_section.h
 )
 
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SOURCES} ${HEADERS})

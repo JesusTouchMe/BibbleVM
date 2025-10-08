@@ -15,7 +15,7 @@ namespace bibble {
         InitDispatchers(config, mDispatchTable, mDispatchTableExt);
     }
 
-    void Interpreter::execute(VM& vm, BytecodeStream bytecode) {
+    void Interpreter::execute(VM& vm, BytecodeReader bytecode) {
         while (true) {
             std::optional<std::variant<ByteOpcode, ExtendedOpcode>> opcode = bytecode.fetchOpcode();
             if (!opcode.has_value()) {

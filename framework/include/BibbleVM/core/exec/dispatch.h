@@ -3,7 +3,7 @@
 #ifndef BIBBLEVM_CORE_DISPATCH_H
 #define BIBBLEVM_CORE_DISPATCH_H 1
 
-#include "BibbleVM/core/bytecode/bytecode_stream.h"
+#include "BibbleVM/core/bytecode/bytecode_reader.h"
 
 #include "BibbleVM/config.h"
 
@@ -11,7 +11,7 @@
 
 namespace bibble {
     class VM;
-    using DispatchFn = bool(*)(VM&, BytecodeStream&);
+    using DispatchFn = bool(*)(VM&, BytecodeReader&);
     using DispatchTable = std::array<DispatchFn, 256>;
     using DispatchTableExt = std::array<DispatchFn, 65536>;
 

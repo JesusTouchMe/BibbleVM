@@ -1,14 +1,27 @@
 // Copyright 2025 JesusTouchMe
 
-#ifndef BIBBLEVM_CORE_DATA_SECTION_H
-#define BIBBLEVM_CORE_DATA_SECTION_H 1
+#ifndef BIBBLEVM_CORE_SECTION_H
+#define BIBBLEVM_CORE_SECTION_H 1
 
 #include "BibbleVM/core/value/value.h"
 
+#include <cstring>
 #include <optional>
 #include <span>
 
 namespace bibble {
+    class Section;
+
+    template<class T>
+    concept SectionReadable = requires(const Section& section, size_t offset) {
+        { T::ReadFromSection(section, offset) } -> std::same_as<std::optional<T>>;
+    };
+
+    template<class T>
+    concept SectionWritable = requires(T t, Section& section, size_t offset) {
+        { t.writeToSection(section, offset) } -> std::same_as<bool>;
+    };
+
     class Section {
     public:
         explicit Section(std::span<u8> bytes);
@@ -32,6 +45,20 @@ namespace bibble {
         std::optional<float> getFloat(size_t offset) const;
         std::optional<double> getDouble(size_t offset) const;
 
+        template<size_t Count>
+        bool getBytes(size_t offset, u8* out) const {
+            if (offset + Count > mBytes.size()) return false;
+            if constexpr (Count == 0) return true;
+
+            std::memcpy(out, mBytes.data() + offset, Count);
+            return true;
+        }
+
+        template<SectionReadable T>
+        std::optional<T> getCustom(size_t offset) const {
+            return T::ReadFromSection(*this, offset);
+        }
+
         // all return true on success
 
         bool setU8(size_t offset, u8 value);
@@ -47,9 +74,23 @@ namespace bibble {
         bool setFloat(size_t offset, float value);
         bool setDouble(size_t offset, double value);
 
+        template<size_t Count>
+        bool setBytes(size_t offset, const u8* bytes) {
+            if (offset + Count > mBytes.size()) return false;
+            if constexpr (Count == 0) return true;
+
+            std::memcpy(mBytes.data() + offset, bytes, Count);
+            return true;
+        }
+
+        template<SectionWritable T>
+        bool setCustom(size_t offset, const T& value) {
+            return T::WriteToSection(*this, offset);
+        }
+
     private:
         std::span<u8> mBytes;
     };
 }
 
-#endif //BIBBLEVM_CORE_DATA_SECTION_H
+#endif //BIBBLEVM_CORE_SECTION_H

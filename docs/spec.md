@@ -99,44 +99,174 @@ BBXFile {
   u16 version;
   DataSection data;
   SymbolSection symbols;
-  Section strtab;
+  StrtabSection strtab;
   CodeSection code;
   u8 extra_section_count;
   Section extra_sections[extra_section_count];
 }
 ```
 The items of the `BBXFile` struct are as follows:
-* **magic**: A magic number identifying the `bbx` file format. It has the value 0xB1BB1E69.
-* **version**: The bytecode version for VM legacy support.
-* **data**: The section storing all data ranging from strings to global variables ([3.2.2](#322-datasection-structure)).
-* **symbols**: The section storing all symbols to define functions and classes ([3.2.3](#323-symbolsection-structure)).
-* **strtab**: Section for holding all variable-length strings ([3.2.4](#324-strtabsection-structure)). Usually for fixed length strings of 8 bytes or more, making the firts 4 bytes `@STR` and the next 4 an index into strtab will result in a variable-length strtab string being used instead of a fixed-length.
-* **code**: The section storing all bytecode instructions ([3.2.5](#325-codesection-structure)).
-* **extra_section_count**: The amount of extra sections (nonstandard or optional) present in the file.
-* **extra_sections[]**: A table of structures ([3.2.1](#321-section-structure), [3.2.6](#326-extra-section-structures)).
+- **magic**: A magic number identifying the `bbx` file format. It has the value 0xB1BB1E69.
+- **version**: The bytecode version for VM legacy support.
+- **data**: The section storing all data ranging from strings to global variables ([3.2.2](#323-datasection-structure)).
+- **symbols**: The section storing all symbols to define functions and classes ([3.2.3](#324-symbolsection-structure)).
+- **strtab**: Section for holding all variable-length strings ([3.2.4](#325-strtabsection-structure)). Usually for fixed length strings of 8 bytes or more, making the firts 4 bytes `@STR` and the next 4 an index into strtab will result in a variable-length strtab string being used instead of a fixed-length.
+- **code**: The section storing all bytecode instructions ([3.2.5](#326-codesection-structure)).
+- **extra_section_count**: The amount of extra sections (nonstandard or optional) present in the file.
+- **extra_sections[]**: A table of structures ([3.2.1](#322-section-structure), [3.2.6](#327-extra-section-structures)).
+
+---
 
 ## 3.2 The `Section` Structures
-This chapter will define a base `Section` struct as well as several derivatives.
+This chapter will define a `SectionHeader` struct as well as several `Section` structs.
 
-A struct deriving from another struct(s) will place the items of the derived struct(s) before its own items in order of derive list.
-
-### 3.2.1 `Section` Structure
+### 3.2.1 `SectionHeader` Structure
 ```
-Section {
+SectionHeader {
   u8 name[8];
   u32 size;
 }
 ```
+The items of the `SectionHeader` struct are as follows:
+- **name[]**: 8 byte long name with NUL padding if needed. For names longer than 8, make this value "@STR" followed by a 32 bit offset into `strtab`.
+- **size**: Size in bytes of this section after the header.
 
-### 3.2.2 `DataSection` Structure
+### 3.2.2 `Section` Structure
+```
+Section {
+  SectionHeader header;
+  u8 body[header.size];
+}
+```
+The items of the `Section` struct are as follows:
+- **header**: [3.2.1](#321-sectionheader-structure)
+- **body[]**: The bytes representing the body of this section.
 
-### 3.2.3 `SymbolSection` Structure
+### 3.2.3 `DataSection` Structure
+```
+CallEntry {
+  u32 module;
+  u32 address;
+  u8 name[8];
+}
+```
+The items of the `CallEntry` struct are as follows:
+- **module**: Strictly used by the dynamic linker. Value must be `0xFFFFFFFF` in file.
+- **address**: The address of the callable in `module`s code section.
+  - A value of `0xFFFFFFFF` marks the entry as unresolved and triggers dynamic resolution by `name`. This will also set `module` to the module containing the found function.
+  - When value is not `0xFFFFFFFF`, it refers to an address in the same file's code section. This will also set `module` to the current file's module.
+- **name[]**: 8 byte long string for the function's name with NUL padding if needed. For longer strings, make this value "@STR" followed by a 32 bit offset into `strtab`.
 
-### 3.2.4 `StrtabSection` Structure
+#### Decoding note:
+If `address` is not `0xFFFFFFFF`, the `name` item is ignored and **must not** be read during decoding. The `name` is only used when `address == 0xFFFFFFFF` to resolve the symbol at runtime.
+This means that local callable targets can take up just 8 bytes instead of 16.
 
-### 3.2.5 `CodeSection` Structure
+```
+union DataEntry {
+  i8 byteval;
+  i16 shortval;
+  i32 intval;
+  i64 longval;
+  u8 string[8];
+  CallEntry call;
+}
+```
+The items of the `DataEntry` union are as follows:
+- **byteval**, **shortval**, **intval**, **longval**: one-, two-, four- and eight-byte values respectively.
+- **string[]**: 8 byte long string with NUL padding if needed. For longer strings, make this value "@STR" followed by a 32 bit offset into `strtab`.
+- **call**: Callable target, either a local code offset or an external function resolved by name at runtime.
 
-### 3.2.6 Extra Section Structures
+The `DataEntry` union is not padded or aligned in any way. A 1 byte value takes up 1 byte and an 8 byte value takes up 8 bytes.
+
+```
+DataSection {
+  SectionHeader header;
+  u8 body[header.size];
+}
+```
+The items of the `DataSection` struct are as follows:
+- **header**: [3.2.1](#321-sectionheader-structure)
+- **body[]**: A contiguous sequence of `DataEntry` values stored back-to-back without padding or alignment between elements. Each `DataEntry` begins immediately after the previous one.
+
+### 3.2.4 `SymbolSection` Structure
+The symbol section holds symbols to be exported to the VM and other loaded modules such as functions and classes.
+
+```
+ClassSymbol {
+  //TODO: implement
+}
+```
+
+```
+FunctionSymbol {
+  u8 name[8];
+  u32 entry_address;
+  u32 extra_info;
+}
+```
+The items of the `FunctionSymbol` struct are as follows:
+- **name**: 8 byte long string for the function's name with NUL padding if needed. For longer strings, make this value "@STR" followed by a 32 bit offset into `strtab`.
+- **entry_address**: An address in the same file's code section where the function begins.
+- **extra_info**: An address in the same file's data section that contains potential extra information about this function. The format and structure is not standardized.
+  -A value of `0xFFFFFFFF` means that there is no extra data.
+
+```
+SymbolSection {
+  SectionHeader header;
+  u16 class_count;
+  u16 function_count;
+  ClassSymbol classes[class_count];
+  FunctionSymbol functions[function_count];
+}
+```
+The items of the `SymbolSection` struct are as follows:
+- **header**: [3.2.1](#321-sectionheader-structure)
+- **class_count**: Amount of class symbols present in this section.
+- **function_count**: Amount of function symbols present in this section.
+- **classes[]**: Contains all the classes exported by this file.
+- **functions[]**: Contains all the functions exported by this file.
+
+### 3.2.5 `StrtabSection` Structure
+The strtab section stores all strings used in this file that can't fit in the statically sized strings.
+Name stolen straight from ELF, it also means the same (string table).
+
+```
+String {
+  u16 length;
+  u8 bytes[length];
+}
+```
+The items of the `String` struct are as follows:
+- **length**: Length of the string in bytes.
+- **bytes[]**: The bytes that make up the string.
+
+Strings should not be null terminated.
+
+```
+StrtabSection {
+  SectionHeader header;
+  u8 body[header.size];
+}
+```
+The items of the `StrtabSection` struct are as follows:
+- **header**: [3.2.1](#321-sectionheader-structure)
+- **body[]**: A contiguous sequence of `String` values stored back-to-back without padding or alignment between elements. Each `String` begins immediately after the previous one.
+
+### 3.2.6 `CodeSection` Structure
+
+```
+CodeSection {
+  SectionHeader header;
+  u8 code[header.size];
+}
+```
+The items of the `CodeSection` struct are as follows:
+- **header**: [3.2.1](#321-sectionheader-structure)
+- **code[]**: A contiguous array of bytecode instructions ([4.2](#42-instructions)).
+
+### 3.2.7 Extra Section Structures
+
+None yet.
 
 ---
 

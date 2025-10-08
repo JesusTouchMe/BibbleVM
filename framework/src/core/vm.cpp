@@ -54,7 +54,7 @@ namespace bibble {
         mExited = true;
     }
 
-    int VM::getExitCode() {
+    int VM::getExitCode() const {
         return mExitCode;
     }
 
@@ -62,7 +62,7 @@ namespace bibble {
         return mExited;
     }
 
-    void VM::execute(const BytecodeStream& stream) {
+    void VM::execute(const BytecodeReader& stream) {
         if (mExited) return;
 
         mInterpreter.execute(*this, stream);

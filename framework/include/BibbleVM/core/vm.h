@@ -30,10 +30,10 @@ namespace bibble {
         bool trap(u8 code);
 
         void exit(int code);
-        int getExitCode();
+        int getExitCode() const;
         bool hasExited() const;
 
-        void execute(const BytecodeStream& stream);
+        void execute(const BytecodeReader& stream);
 
     private:
         VMConfig mConfig;

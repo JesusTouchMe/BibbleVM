@@ -16,7 +16,7 @@ int main() {
         0x01, 0x00, // HLT 0
     };
 
-    bibble::BytecodeStream stream(bytecode);
+    bibble::BytecodeReader stream(bytecode);
 
     vm->execute(stream);
 

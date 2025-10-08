@@ -4,7 +4,7 @@
 
 #include "BibbleVM/core/vm.h"
 
-#define DEFINE_DISPATCH(opcode) bool Dispatch_##opcode(VM& vm, BytecodeStream& code)
+#define DEFINE_DISPATCH(opcode) bool Dispatch_##opcode(VM& vm, BytecodeReader& code)
 #define REGISTER_DISPATCH(table, opcode) table[static_cast<size_t>(ByteOpcode::opcode)] = Dispatch_##opcode
 #define REGISTER_DISPATCH_EXT(table, opcode) table[static_cast<size_t>(ExtendedOpcode::opcode)] = Dispatch_##opcode
 
