@@ -12,10 +12,6 @@ namespace bibble {
         return index >= 0 && index < mSize;
     }
 
-    Value& Frame::acc() {
-        return mAccumulator;
-    }
-
     Value& Frame::sp() {
         return mStackPointer;
     }

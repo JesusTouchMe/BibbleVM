@@ -8,7 +8,11 @@ set(SOURCES
     src/core/stack/stack.cpp
     src/core/exec/interpreter.cpp
         src/core/bytecode/section.cpp
-        src/core/bytecode/structs.cpp
+    src/core/bytecode/data_section.cpp
+    src/core/module/module.cpp
+    src/core/call/function.cpp
+    src/core/bytecode/code_section.cpp
+    src/core/bytecode/strtab_section.cpp
 )
 
 set(HEADERS
@@ -22,7 +26,13 @@ set(HEADERS
     include/BibbleVM/core/stack/stack.h
     include/BibbleVM/core/exec/interpreter.h
         include/BibbleVM/core/bytecode/section.h
-        include/BibbleVM/core/bytecode/structs/data_section.h
+    include/BibbleVM/core/bytecode/data_section.h
+    include/BibbleVM/core/bytecode/strtab_section.h
+    include/BibbleVM/core/call/callable_target.h
+    include/BibbleVM/core/bytecode/code_section.h
+    include/BibbleVM/core/module/module.h
+    include/BibbleVM/core/call/function.h
+    include/BibbleVM/util/string.h
 )
 
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SOURCES} ${HEADERS})

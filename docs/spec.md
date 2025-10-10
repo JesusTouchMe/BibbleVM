@@ -167,12 +167,16 @@ union DataEntry {
   i16 shortval;
   i32 intval;
   i64 longval;
+  float floatval;
+  double doubleval;
   u8 string[8];
   CallEntry call;
 }
 ```
 The items of the `DataEntry` union are as follows:
 - **byteval**, **shortval**, **intval**, **longval**: one-, two-, four- and eight-byte values respectively.
+- **floatval**: 4 byte floating point value.
+- **doubleval**: 8 byte floating point value.
 - **string[]**: 8 byte long string with NUL padding if needed. For longer strings, make this value "@STR" followed by a 32 bit offset into `strtab`.
 - **call**: Callable target, either a local code offset or an external function resolved by name at runtime.
 
@@ -208,7 +212,7 @@ The items of the `FunctionSymbol` struct are as follows:
 - **name**: 8 byte long string for the function's name with NUL padding if needed. For longer strings, make this value "@STR" followed by a 32 bit offset into `strtab`.
 - **entry_address**: An address in the same file's code section where the function begins.
 - **extra_info**: An address in the same file's data section that contains potential extra information about this function. The format and structure is not standardized.
-  -A value of `0xFFFFFFFF` means that there is no extra data.
+  - A value of `0xFFFFFFFF` means that there is no extra data.
 
 ```
 SymbolSection {

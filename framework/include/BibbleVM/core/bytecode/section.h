@@ -8,6 +8,7 @@
 #include <cstring>
 #include <optional>
 #include <span>
+#include <string_view>
 
 namespace bibble {
     class Section;
@@ -18,7 +19,7 @@ namespace bibble {
     };
 
     template<class T>
-    concept SectionWritable = requires(T t, Section& section, size_t offset) {
+    concept SectionWritable = requires(const T t, Section& section, size_t offset) {
         { t.writeToSection(section, offset) } -> std::same_as<bool>;
     };
 
@@ -26,11 +27,15 @@ namespace bibble {
     public:
         explicit Section(std::span<u8> bytes);
 
+        std::span<u8> getUnderlyingSpan() const;
+        size_t getSize() const;
+
         std::span<u8>::iterator begin();
         std::span<u8>::iterator end();
 
-        std::optional<u8*> get(size_t offset);
-        std::optional<const u8*> get(size_t offset) const;
+        // Unsafe because they don't check how many bytes user intends to use from this. Check getBytes(size_t) for a safe version
+        std::optional<u8*> getUnsafe(size_t offset);
+        std::optional<const u8*> getUnsafe(size_t offset) const;
 
         std::optional<u8> getU8(size_t offset) const;
         std::optional<u16> getU16(size_t offset) const;
@@ -44,6 +49,14 @@ namespace bibble {
 
         std::optional<float> getFloat(size_t offset) const;
         std::optional<double> getDouble(size_t offset) const;
+
+        std::optional<std::string_view> getString(size_t offset, size_t length) const;
+
+        template<size_t Count>
+        std::optional<const u8*> getBytes(size_t offset) const {
+            if (offset + Count > mBytes.size()) return std::nullopt;
+            return getUnsafe(offset);
+        }
 
         template<size_t Count>
         bool getBytes(size_t offset, u8* out) const {
@@ -85,7 +98,7 @@ namespace bibble {
 
         template<SectionWritable T>
         bool setCustom(size_t offset, const T& value) {
-            return T::WriteToSection(*this, offset);
+            return value.writeToSection(*this, offset);
         }
 
     private:

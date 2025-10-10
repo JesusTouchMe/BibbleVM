@@ -6,6 +6,14 @@ namespace bibble {
     Section::Section(std::span<u8> bytes)
         : mBytes(bytes) {}
 
+    std::span<u8> Section::getUnderlyingSpan() const {
+        return mBytes;
+    }
+
+    size_t Section::getSize() const {
+        return mBytes.size();
+    }
+
     std::span<u8>::iterator Section::begin() {
         return mBytes.begin();
     }
@@ -14,13 +22,13 @@ namespace bibble {
         return mBytes.end();
     }
 
-    std::optional<u8*> Section::get(size_t offset) {
+    std::optional<u8*> Section::getUnsafe(size_t offset) {
         if (offset >= mBytes.size()) return std::nullopt;
 
         return mBytes.data() + offset;
     }
 
-    std::optional<const u8*> Section::get(size_t offset) const {
+    std::optional<const u8*> Section::getUnsafe(size_t offset) const {
         if (offset >= mBytes.size()) return std::nullopt;
 
         return mBytes.data() + offset;
@@ -105,6 +113,14 @@ namespace bibble {
         std::memcpy(&value, &raw, sizeof(value));
 
         return value;
+    }
+
+    std::optional<std::string_view> Section::getString(size_t offset, size_t length) const {
+        if (offset + length > mBytes.size()) return std::nullopt;
+
+        const u8* p = mBytes.data() + offset;
+
+        return std::string_view(reinterpret_cast<const char*>(p), length);
     }
 
     bool Section::setU8(size_t offset, u8 value) {

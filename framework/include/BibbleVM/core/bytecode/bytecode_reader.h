@@ -14,7 +14,7 @@
 namespace bibble {
     class BytecodeReader {
     public:
-        BytecodeReader(std::span<const u8> bytes, size_t startPosition);
+        explicit BytecodeReader(std::span<const u8> bytes, size_t startPosition = 0);
 
         size_t getSize() const;
         size_t getPosition() const;

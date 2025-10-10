@@ -15,7 +15,6 @@ namespace bibble {
 
         bool isWithinBounds(i64 index) const;
 
-        Value& acc();
         Value& sp();
 
         Value& operator[](size_t index);
@@ -27,7 +26,6 @@ namespace bibble {
         size_t mSize;
 
         // Registers saved in stack frames
-        Value mAccumulator;
         Value mStackPointer;
     };
 }

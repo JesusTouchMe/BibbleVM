@@ -11,11 +11,15 @@ namespace bibble {
     public:
         explicit Interpreter(const VMConfig& config);
 
-        void execute(VM& vm, BytecodeReader bytecode);
+        u32 getActiveModule() const;
+
+        void execute(VM& vm, u32 module, BytecodeReader bytecode);
 
     private:
         DispatchTable mDispatchTable{};
         DispatchTableExt mDispatchTableExt{};
+
+        u32 mActiveModule;
     };
 }
 

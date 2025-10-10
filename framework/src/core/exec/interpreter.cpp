@@ -15,7 +15,12 @@ namespace bibble {
         InitDispatchers(config, mDispatchTable, mDispatchTableExt);
     }
 
-    void Interpreter::execute(VM& vm, BytecodeReader bytecode) {
+    u32 Interpreter::getActiveModule() const {
+        return mActiveModule;
+    }
+
+    void Interpreter::execute(VM& vm, u32 module, BytecodeReader bytecode) {
+        mActiveModule = module;
         while (true) {
             std::optional<std::variant<ByteOpcode, ExtendedOpcode>> opcode = bytecode.fetchOpcode();
             if (!opcode.has_value()) {
