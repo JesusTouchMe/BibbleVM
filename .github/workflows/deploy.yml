@@ -3,7 +3,10 @@ name: Build and Deploy Docs
 on:
   push:
     branches:
-      - master  # or 'main'
+      - master
+
+permissions:
+  contents: write
 
 jobs:
   deploy:
