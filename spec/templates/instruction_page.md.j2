@@ -1,0 +1,16 @@
+# {{ name }} ({{ opcode }})
+
+**Category:** {{ category }}
+**Stack Effect:** {{ stack }}
+**ACC Effect:** {{ acc }}
+**Operands:** {{ operands|join(', ') if operands else 'None' }}
+**Safety:** {% if safe %}✅ Safe{% else %}⚠️ Privileged{% endif %}
+
+---
+
+{{ description }}
+
+### Errors
+{% for e in errors %}
+- {{ e }}
+{% endfor %}

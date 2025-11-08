@@ -1,0 +1,9 @@
+site_name: BibbleVM Specification
+theme:
+  name: material
+nav:
+  - Overview: index.md
+  - Instructions:
+      - auto: instructions/
+plugins:
+  - search

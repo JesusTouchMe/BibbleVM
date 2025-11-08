@@ -1,0 +1,11 @@
+- name: ADD
+  opcode: 0x10
+  category: arithmetic
+  stack: "(a, b → result)"
+  acc: unchanged
+  operands: []
+  safe: true
+  description: Pops two numeric values and pushes their sum.
+  errors:
+    - Stack underflow
+    - Type mismatch
