@@ -4,12 +4,13 @@
 
 #include "BibbleVM/core/vm.h"
 
-#define DEFINE_DISPATCH(opcode) bool Dispatch_##opcode(VM& vm, BytecodeReader& code)
+#define DEFINE_DISPATCH(opcode) DispatchErr Dispatch_##opcode(VM& vm, BytecodeReader& code)
 #define REGISTER_DISPATCH(table, opcode) table[static_cast<size_t>(ByteOpcode::opcode)] = Dispatch_##opcode
 #define REGISTER_DISPATCH_EXT(table, opcode) table[static_cast<size_t>(ExtendedOpcode::opcode)] = Dispatch_##opcode
 
-#define DISPATCH_SUCCEED() return true
-#define DISPATCH_FAIL() do { vm.exit(-2); return false; } while(0)
+#define DISPATCH_INTERPRETER_RETURN() return DISPATCH_RETURN
+#define DISPATCH_SUCCEED() return DISPATCH_SUCCESS
+#define DISPATCH_FAIL() do { vm.exit(-2); return DISPATCH_ERROR; } while(0)
 
 namespace bibble {
     DEFINE_DISPATCH(NOP) {
@@ -1165,6 +1166,45 @@ namespace bibble {
         DISPATCH_SUCCEED();
     }
 
+    DEFINE_DISPATCH(CALL) {
+        std::optional<u32> targetIndexOpt = code.fetchU32();
+        std::optional<u16> argcOpt = code.fetchU16();
+
+        if (!targetIndexOpt.has_value()) DISPATCH_FAIL();
+        if (!argcOpt.has_value()) DISPATCH_FAIL();
+
+        u32 targetIndex = targetIndexOpt.value();
+        u16 argc = argcOpt.value();
+
+        std::vector<Value> args;
+        args.reserve(argc);
+
+        for (u16 i = 0; i < argc; i++) {
+            std::optional<Value> value = vm.pop();
+            if (!value.has_value()) DISPATCH_FAIL();
+
+            args.push_back(value.value());
+        }
+
+        const CallableTarget* target = vm.currentModule()->data().getCallable(targetIndex, vm);
+        if (target == nullptr) DISPATCH_FAIL();
+
+        vm.stack().pushFrame(argc);
+
+        for (u16 i = 0; i < argc; i++) {
+            vm.stack().getTopFrame()->operator[](i) = args[i];
+        }
+
+        //CallableTrampoline(*target, vm);
+        vm.call(target);
+
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(RET) {
+        DISPATCH_INTERPRETER_RETURN();
+    }
+
     void InitDispatchers(const VMConfig& config, DispatchTable& dispatchTable, DispatchTableExt& dispatchTableExt) {
         REGISTER_DISPATCH(dispatchTable, NOP);
         REGISTER_DISPATCH(dispatchTable, HLT);
@@ -1289,5 +1329,7 @@ namespace bibble {
         REGISTER_DISPATCH(dispatchTable, JMP);
         REGISTER_DISPATCH(dispatchTable, JZ);
         REGISTER_DISPATCH(dispatchTable, JNZ);
+        REGISTER_DISPATCH(dispatchTable, CALL);
+        REGISTER_DISPATCH(dispatchTable, RET);
     }
 }

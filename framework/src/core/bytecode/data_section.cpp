@@ -99,7 +99,7 @@ namespace bibble {
                 mCallableCache[offset] = target;
                 return target;
             } else { // function is resolved and is in current module
-                std::optional<BytecodeReader> bytecode = currentModule->code().getBytecodeReader(offset);
+                std::optional<BytecodeReader> bytecode = currentModule->code().getBytecodeReader(callEntry.address);
                 if (!bytecode.has_value()) return nullptr;
 
                 callEntry.module = vm.currentModuleH();

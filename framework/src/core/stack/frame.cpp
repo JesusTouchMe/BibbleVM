@@ -6,7 +6,8 @@ namespace bibble {
     Frame::Frame(size_t size, std::unique_ptr<Frame> previous)
         : mPrevious(std::move(previous))
         , mData(std::make_unique<Value[]>(size))
-        , mSize(size) {}
+        , mSize(size)
+        , mStackPointer(0) {}
 
     bool Frame::isWithinBounds(i64 index) const {
         return index >= 0 && index < mSize;

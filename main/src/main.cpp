@@ -7,30 +7,42 @@
 int main() {
     auto vm = bibble::CreateVM();
 
-    vm->stack().pushFrame(0);
+    vm->stack().pushFrame(1);
 
     bibble::u8 bytecodeArr[] = {
         // data section
+
+        // main
         0xFF, 0xFF, 0xFF, 0xFF, // module
         0x00, 0x00, 0x00, 0x00, // address (known)
+
+        // test
+        0xFF, 0xFF, 0xFF, 0xFF,
+        0x00, 0x00, 0x00, 0x11,
 
 
 
         // code section
+
+        // main
         0x85, 0x22, // CONST 34
         0x32, 0x00, 0x00, 0x00, 0x23, // ADD_IMM 35
-        0x02, 0x00, // TRAP 0
-        0x97, 0x00, 0x02, // JMP 2
-        0x01, 0x45, // HLT 69
+        0x80, // PUSH_ACC
+        0x9A, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, // CALL 8, 1
         0x01, 0x00, // HLT 0
+
+        // test
+        0x8B, 0x00, 0x00, // LOAD 0
+        0x02, 0x00, // TRAP 0
+        0x9F, // RET
     };
 
     std::unique_ptr<bibble::u8[]> bytecode = std::make_unique<bibble::u8[]>(sizeof(bytecodeArr));
     std::memcpy(bytecode.get(), bytecodeArr, sizeof(bytecodeArr));
 
-    bibble::Section data({ &bytecode[0], 8 });
-    bibble::Section strtab({ &bytecode[8], 0 });
-    bibble::Section code({ &bytecode[8], 16 });
+    bibble::Section data({ &bytecode[0], 16 });
+    bibble::Section strtab({ &bytecode[16], 0 });
+    bibble::Section code({ &bytecode[16], 23 });
 
     bibble::u32 moduleH = vm->addModule(std::make_unique<bibble::Module>(std::move(bytecode), bibble::DataSection(data), bibble::StrtabSection(strtab), bibble::CodeSection(code)));
     if (vm->hasExited()) {

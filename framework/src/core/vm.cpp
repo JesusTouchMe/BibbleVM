@@ -113,7 +113,7 @@ namespace bibble {
         return mExited;
     }
 
-    void VM::call(CallableTarget* target) {
+    void VM::call(const CallableTarget* target) {
         if (mExited) return;
 
         mInterpreter.execute(*this, target->module, target->entry);

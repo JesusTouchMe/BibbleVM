@@ -22,6 +22,10 @@ namespace bibble {
     void Interpreter::execute(VM& vm, u32 module, BytecodeReader bytecode) {
         mActiveModule = module;
         while (true) {
+            if (vm.hasExited()) {
+                return;
+            }
+
             std::optional<std::variant<ByteOpcode, ExtendedOpcode>> opcode = bytecode.fetchOpcode();
             if (!opcode.has_value()) {
                 vm.exit(-1);
@@ -40,12 +44,13 @@ namespace bibble {
                 return;
             }
 
-            if (!dispatch(vm, bytecode)) {
-                vm.exit(-1);
+            DispatchErr err = dispatch(vm, bytecode);
+            if (err == DISPATCH_SUCCESS) {
+                continue;
+            } else if (err == DISPATCH_RETURN) {
                 return;
-            }
-
-            if (vm.hasExited()) {
+            } else {
+                vm.exit(-1);
                 return;
             }
         }

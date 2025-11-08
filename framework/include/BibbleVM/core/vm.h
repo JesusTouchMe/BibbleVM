@@ -50,7 +50,7 @@ namespace bibble {
         int getExitCode() const;
         bool hasExited() const;
 
-        void call(CallableTarget* target);
+        void call(const CallableTarget* target);
 
     private:
         VMConfig mConfig;

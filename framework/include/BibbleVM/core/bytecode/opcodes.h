@@ -145,7 +145,9 @@ namespace bibble {
 
         JMP = 0x97,
         JZ = 0x98,
-        JNZ = 0x99
+        JNZ = 0x99,
+        CALL = 0x9A,
+        RET = 0x9F,
     };
 
     enum class ExtendedOpcode : u16 {
