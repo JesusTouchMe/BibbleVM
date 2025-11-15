@@ -1,9 +1,24 @@
 site_name: BibbleVM Specification
+
 theme:
   name: material
+  palette:
+    scheme: slate
+  features:
+    - navigation.expand
+    - toc.integrate
+
+docs_dir: docs
+
 nav:
   - Overview: index.md
-  - Instructions:
-      - auto: instructions/
+  - Instructions: instructions.md
+
+extra_css:
+  - stylesheets/extra.css
+
 plugins:
   - search
+
+markdown_extensions:
+  - attr_list

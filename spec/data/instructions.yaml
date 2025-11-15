@@ -1,11 +1,1084 @@
+- name: NOP
+  opcode: 0x00
+  operation: Do nothing
+  description: Do nothing.
+
+- name: HLT
+  opcode: 0x01
+  operation: Halt execution
+  operands: i8 exitcode
+  description: Forcibly terminates the current BibbleVM.
+  notes:
+    - Even though this terminates the BibbleVM, it doesn't necessarily terminate the host process running the it.
+
+- name: TRAP
+  opcode: 0x02
+  operation: Execute a implementation-defined VM trap routine
+  operands: i8 code
+  acc: Implementation-defined
+  stack: Implementation-defined
+  description: Executes an implementation-defined VM routine identified by `code`.
+  notes:
+    - Intended for use by standard library implementations. Not typically used in user code.
+
+- name: TRAP_IF_ZERO
+  opcode: 0x03
+  operation: Execute a implementation-defined VM trap routine if accumulator is 0
+  operands: i8 code
+  acc: x → Implementation-defined if x == 0
+  stack: Implementation-defined
+  description: |
+    If the value in accumulator is equal to 0, executes an implementation-defined VM routine identified by `code`.<br>
+    Otherwise, does nothing.
+  notes:
+    - Intended for use by standard library implementations. Not typically used in user code.
+
+- name: TRAP_IF_NOT_ZERO
+  opcode: 0x04
+  operation: Execute a implementation-defined VM trap routine if accumulator isn't 0
+  operands: i8 code
+  acc: x → Implementation-defined if x != 0
+  stack: Implementation-defined
+  description: |
+    If the value in accumulator isn't equal to 0, executes an implementation-defined VM routine identified by `code`.<br>
+    Otherwise, does nothing.
+  notes:
+    - Intended for use by standard library implementations. Not typically used in user code.
+
+- name: BRK
+  opcode: 0x05
+  operation: Trigger debug break
+  description: When a debugger is attached, causes a breakpoint. Otherwise does nothing.
+
 - name: ADD
   opcode: 0x10
-  category: arithmetic
-  stack: "(a, b → result)"
-  acc: unchanged
-  operands: []
-  safe: true
-  description: Pops two numeric values and pushes their sum.
+  operation: Add integers
+  acc: a → a + b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit signed integers. `b` is popped from the stack and added to `a` directly in the accumulator.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: SUB
+  opcode: 0x11
+  operation: Subtract integers
+  acc: a → a - b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit signed integers. `b` is popped from the stack and subtracted from `a` directly in the accumulator.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: MUL
+  opcode: 0x12
+  operation: Multiply integers
+  acc: a → a * b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit signed integers. `b` is popped from the stack and `a` is multiplied by it directly in the accumulator.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: DIV
+  opcode: 0x13
+  operation: Divide integers
+  acc: a → a / b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit signed integers. `b` is popped from the stack and `a` is divided by it directly in the accumulator.<br>
+    Division of the most negative 64-bit value by -1 produces a result that cannot be represented. This case is undefined behavior, but does not raise a runtime error.
   errors:
-    - Stack underflow
-    - Type mismatch
+    - If the divisor is 0, causes a runtime error.
+
+- name: MOD
+  opcode: 0x14
+  operation: Modulo integers
+  acc: a → result
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit signed integers. `b` is popped from the stack. he result is `a - (a / b) * b` and is moved to the accumulator.<br>
+    Applying modulo to the most negative 64-bit value with a divisor of -1 is undefined due to the underlying division step, but does not raise a runtime error.
+  errors:
+      - If the divisor is 0, causes a runtime error.
+
+- name: AND
+  opcode: 0x15
+  operation: Bitwise AND integers
+  acc: a → a & b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack and the accumulator is set to the result of bitwise AND (conjunction) of `a` and `b`.
+
+- name: OR
+  opcode: 0x16
+  operation: Bitwise OR integers
+  acc: a → a | b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack and the accumulator is set to the result of bitwise OR of `a` and `b`.
+
+- name: XOR
+  opcode: 0x17
+  operation: Bitwise XOR integers
+  acc: a → a ^ b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack and the accumulator is set to the result of bitwise exclusive OR of `a` and `b`.
+
+- name: SHL
+  opcode: 0x18
+  operation: Shift left integer
+  acc: a → a << b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack and the value in accumulator is shifted left by `s` bit positions, where `s` is the value of the low 6 bits of `b`.
+
+- name: SHR
+  opcode: 0x19
+  operation: Shift right integer
+  acc: a → a >> b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack and the value in accumulator is shifted right by `s` bit positions, where `s` is the value of the low 6 bits of `b`.
+
+- name: NEG
+  opcode: 0x1A
+  operation: Negate integer
+  acc: a → -a
+  description: | 
+    `a` must be a 64-bit integer. The value in the accumulator is set to the negation of `a`.<br>
+    Negation is the same as subtraction from 0.
+
+- name: NOT
+  opcode: 0x1B
+  operation: Bitwise NOT integer
+  acc: a → ~a
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is set to the bitwise complement of `a` (all bits inverted).
+
+- name: ADD2
+  opcode: 0x1C
+  operation: Add integers
+  acc: ... → a + b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a + b` and is moved to the accumulator.
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: SUB2
+  opcode: 0x1D
+  operation: Subtract integers
+  acc: ... → a - b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a - b` and is moved to the accumulator.
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: MUL2
+  opcode: 0x1E
+  operation: Multiply integers
+  acc: ... → a * b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a * b` and is moved to the accumulator.
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: DIV2
+  opcode: 0x1F
+  operation: Divide integers
+  acc: ... → a / b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a / b` and is moved to the accumulator.
+    Division of the most negative 64-bit value by -1 produces a result that cannot be represented. This case is undefined behavior, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: MOD2
+  opcode: 0x20
+  operation: Modulo integers
+  acc: ... → result
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a - (a / b) * b` and is moved to the accumulator.
+    Applying modulo to the most negative 64-bit value with a divisor of -1 is undefined due to the underlying division step, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+    -
+
+- name: AND2
+  opcode: 0x21
+  operation: Bitwise AND integers
+  acc: ... → a & b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is the bitwise AND (conjunction) of `a` and `b` and is moved to the accumulator.
+
+- name: OR2
+  opcode: 0x22
+  operation: Bitwise OR integers
+  acc: ... → a | b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is the bitwise OR of `a` and `b` and is moved to the accumulator.
+
+- name: XOR2
+  opcode: 0x23
+  operation: Bitwise XOR integers
+  acc: ... → a ^ b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is the bitwise exclusive OR of `a` and `b` and is moved to the accumulator.
+
+- name: SHL2
+  opcode: 0x24
+  operation: Shift left integer
+  acc: ... → a << b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a` shifted left by `s` bit positions, where `s` is the value of the low 6 bits of `b` and is moved to the accumulator.
+
+- name: SHR2
+  opcode: 0x25
+  operation: Shift right integer
+  acc: ... → a >> b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a` shifted left by `s` bit positions, where `s` is the value of the low 6 bits of `b` and is moved to the accumulator.
+
+- name: ADD_ST
+  opcode: 0x26
+  operation: Add integers
+  stack: "[..., a, b] → [..., a + b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a + b` and is pushed onto the stack.
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: SUB_ST
+  opcode: 0x27
+  operation: Subtract integers
+  stack: "[..., a, b] → [..., a - b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a - b` and is pushed onto the stack.
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: MUL_ST
+  opcode: 0x28
+  operation: Multiply integers
+  stack: "[..., a, b] → [..., a * b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a * b` and is pushed onto the stack.
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: DIV_ST
+  opcode: 0x29
+  operation: Divide integers
+  stack: "[..., a, b] → [..., a / b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a / b` and is pushed onto the stack.
+    Division of the most negative 64-bit value by -1 produces a result that cannot be represented. This case is undefined behavior, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: MOD_ST
+  opcode: 0x2A
+  operation: Modulo integers
+  stack: "[..., a, b] → [..., result]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a - (a / b) * b` and is pushed onto the stack.
+    Applying modulo to the most negative 64-bit value with a divisor of -1 is undefined due to the underlying division step, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: AND_ST
+  opcode: 0x2B
+  operation: Bitwise AND integers
+  stack: "[..., a, b] → [..., a & b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is bitwise AND (conjunction) of `a` and `b` and is pushed onto the stack.
+
+- name: OR_ST
+  opcode: 0x2C
+  operation: Bitwise OR integers
+  stack: "[..., a, b] → [..., a | b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is bitwise OR of `a` and `b` and is pushed onto the stack.
+
+- name: XOR_ST
+  opcode: 0x2D
+  operation: Bitwise XOR integers
+  stack: "[..., a, b] → [..., a ^ b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is bitwise exclusive OR of `a` and `b` and is pushed onto the stack.
+
+- name: SHL_ST
+  opcode: 0x2E
+  operation: Shift left integer
+  stack: "[..., a, b] → [..., a << b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a` shifted left by `s` bit positions, where `s` is the value of the low 6 bits of `b` and is pushed onto the stack.
+
+- name: SHR_ST
+  opcode: 0x2F
+  operation: Shift right integer
+  stack: "[..., a, b] → [..., a >> b]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. The values are popped from the stack. The result is `a` shifted right by `s` bit positions, where `s` is the value of the low 6 bits of `b` and is pushed onto the stack.
+
+- name: NEG_ST
+  opcode: 0x30
+  operation: Negate integer
+  stack: "[..., a] → [..., -a]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is set to the negation of `a`.<br>
+    Negation is the same as subtraction from 0.
+
+- name: NOT_ST
+  opcode: 0x31
+  operation: Bitwise NOT integer
+  stack: "[..., a] → [..., ~a]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is set to the bitwise complement of `a` (all bits inverted).
+
+- name: ADD_IMM
+  opcode: 0x32
+  operation: Add immediate to accumulator
+  operands: i32 value
+  acc: a → a + value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is increased by the 32-bit immediate `value`.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: SUB_IMM
+  opcode: 0x33
+  operation: Subtract immediate from accumulator
+  operands: i32 value
+  acc: a → a - value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is decreased by the 32-bit immediate `value`.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: MUL_IMM
+  opcode: 0x34
+  operation: Multiply accumulator by immediate
+  operands: i32 value
+  acc: a → a * value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is multiplied by the 32-bit immediate `value`.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: DIV_IMM
+  opcode: 0x35
+  operation: Divide accumulator by immediate
+  operands: i32 value
+  acc: a → a / value
+  description: |
+    `a` must be a 64-bit integer. The accumulator is divided by the 32-bit immediate `value`.<br>
+    Division of the most negative 64-bit value by -1 produces a result that cannot be represented. This case is undefined behavior, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: MOD_IMM
+  opcode: 0x36
+  operation: Modulo accumulator by immediate
+  operands: i32 value
+  acc: a → result
+  description: |
+    `a` must be a 64-bit integer. The accumulator is set to the result of `a - (a / value) * value`.<br>
+    Applying modulo to the most negative 64-bit value with a divisor of -1 is undefined due to the underlying division step, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: AND_IMM
+  opcode: 0x37
+  operation: Bitwise AND accumulator with immediate
+  operands: i32 value
+  acc: a → a & value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is set to the result of bitwise AND (conjunction) of `a` and the 32-bit immediate `value`.
+
+- name: OR_IMM
+  opcode: 0x38
+  operation: Bitwise OR accumulator with immediate
+  operands: i32 value
+  acc: a → a | value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is set to the result of bitwise OR of `a` and the 32-bit immediate `value`.
+
+- name: XOR_IMM
+  opcode: 0x39
+  operation: Bitwise XOR accumulator with immediate
+  operands: i32 value
+  acc: a → a ^ value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is set to the result of bitwise exclusive OR of `a` and the 32-bit immediate `value`.
+
+- name: SHL_IMM
+  opcode: 0x3A
+  operation: Shift left accumulator by immediate
+  operands: i32 value
+  acc: a → a << value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is shifted left by `s` bit positions, where `s` is the value of the low 6 bits of the 32-bit immediate `value`.
+
+- name: SHR_IMM
+  opcode: 0x3B
+  operation: Shift right accumulator by immediate
+  operands: i32 value
+  acc: a → a >> value
+  description: |
+    `a` must be a 64-bit integer. The value in the accumulator is shifted right by `s` bit positions, where `s` is the value of the low 6 bits of the 32-bit immediate `value`.
+
+- name: ADD_IMM_ST
+  opcode: 0x3C
+  operation: Add immediate to top of stack
+  operands: i32 value
+  stack: "[..., a] → [..., a + value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is increased by the 32-bit immediate `value`.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: SUB_IMM_ST
+  opcode: 0x3D
+  operation: Subtract immediate from top of stack
+  operands: i32 value
+  stack: "[..., a] → [..., a - value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is decreased by the 32-bit immediate `value`.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: MUL_IMM_ST
+  opcode: 0x3E
+  operation: Multiply top of stack by immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a * value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is multiplied by the 32-bit immediate `value`.<br>
+    Overflow behavior is undefined, but never results in runtime errors.
+
+- name: DIV_IMM_ST
+  opcode: 0x3F
+  operation: Divide top of stack by immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a / value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is divided by the 32-bit immediate `value`.<br>
+    Division of the most negative 64-bit value by -1 produces a result that cannot be represented. This case is undefined behavior, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: MOD_IMM_ST
+  opcode: 0x40
+  operation: Modulo top of stack by immediate
+  operands: i32 value
+  stack: "[..., a] → [..., result]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is replaced with the result of `a - (a / value) * value`.<br>
+    Applying modulo to the most negative 64-bit value with a divisor of -1 is undefined due to the underlying division step, but does not raise a runtime error.
+  errors:
+    - If the divisor is 0, causes a runtime error.
+
+- name: AND_IMM_ST
+  opcode: 0x41
+  operation: Bitwise AND top of stack with immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a & value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is set to the result of bitwise AND (conjunction) of `a` and the 32-bit immediate `value`.
+
+- name: OR_IMM_ST
+  opcode: 0x42
+  operation: Bitwise OR top of stack with immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a | value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is set to the result of bitwise OR of `a` and the 32-bit immediate `value`.
+
+- name: XOR_IMM_ST
+  opcode: 0x43
+  operation: Bitwise XOR top of stack with immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a ^ value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is set to the result of bitwise exclusive OR of `a` and the 32-bit immediate `value`.
+
+- name: SHL_IMM_ST
+  opcode: 0x44
+  operation: Shift left top of stack by immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a << 0x3F]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is shifted left by `s` bit positions, where `s` is the value of the low 6 bits of the 32-bit immediate `value`.
+
+- name: SHR_IMM_ST
+  opcode: 0x45
+  operation: Shift right top of stack by immediate
+  operands: i32 value
+  stack: "[..., a] → [..., a >> value]"
+  description: |
+    `a` must be a 64-bit integer. The top value of the stack is shifted right by `s` bit positions, where `s` is the value of the low 6 bits of the 32-bit immediate `value`.
+
+- name: FADD
+  opcode: 0x50
+  operation: Add floats
+  acc: a → a + b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. `b` is popped from the stack and added to the accumulator `a`.
+
+- name: FSUB
+  opcode: 0x51
+  operation: Subtract floats
+  acc: a → a - b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. `b` is popped from the stack and subtracted from the accumulator `a`.
+
+- name: FMUL
+  opcode: 0x52
+  operation: Multiply floats
+  acc: a → a * b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. `b` is popped from the stack and multiplied with the accumulator `a`.
+
+- name: FDIV
+  opcode: 0x53
+  operation: Divide floats
+  acc: a → a / b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. `b` is popped from the stack and the accumulator `a` is divided by `b`.<br>
+    If `b` is 0.0, the result is IEEE 754-defined (±Inf or NaN).
+
+- name: FADD2
+  opcode: 0x54
+  operation: Add floats
+  acc: ... → a + b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack. The result `a + b` is moved to the accumulator.
+
+- name: FSUB2
+  opcode: 0x55
+  operation: Subtract floats
+  acc: ... → a - b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack. The result `a - b` is moved to the accumulator.
+
+- name: FMUL2
+  opcode: 0x56
+  operation: Multiply floats
+  acc: ... → a * b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack. The result `a * b` is moved to the accumulator.
+
+- name: FDIV2
+  opcode: 0x57
+  operation: Divide floats
+  acc: ... → a / b
+  stack: "[..., a, b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack. The result `a / b` is moved to the accumulator.<br>
+    If `b` is 0.0, the result is IEEE 754-defined (±Inf or NaN).
+
+- name: FADD_ST
+  opcode: 0x58
+  operation: Add floats
+  stack: "[..., a, b] → [..., a + b]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack and their sum is pushed back.
+
+- name: FSUB_ST
+  opcode: 0x59
+  operation: Subtract floats
+  stack: "[..., a, b] → [..., a - b]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack and the difference is pushed back.
+
+- name: FMUL_ST
+  opcode: 0x5A
+  operation: Multiply floats
+  stack: "[..., a, b] → [..., a * b]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack and the product is pushed back.
+
+- name: FDIV_ST
+  opcode: 0x5B
+  operation: Divide floats
+  stack: "[..., a, b] → [..., a / b]"
+  description: |
+    Both `a` and `b` must be 64-bit floating-point values. The values are popped from the stack and the quotient is pushed back.<br>
+    If `b` is 0.0, the result is IEEE 754-defined (±Inf or NaN).
+
+- name: FNEG
+  opcode: 0x5C
+  operation: Negate float
+  acc: a → -a
+  description: |
+    `a` must be a 64-bit floating-point value. The value in the accumulator is negated.
+
+- name: FADD_IMM
+  opcode: 0x5D
+  operation: Add float immediate
+  operands: f32 value
+  acc: a → a + value
+  description: Adds a 32-bit floating-point immediate `value` to the accumulator.
+
+- name: FSUB_IMM
+  opcode: 0x5E
+  operation: Subtract float immediate
+  operands: f32 value
+  acc: a → a - value
+  description: Subtracts a 32-bit floating-point immediate `value` from the accumulator.
+
+- name: FMUL_IMM
+  opcode: 0x5F
+  operation: Multiply by float immediate
+  operands: f32 value
+  acc: a → a * value
+  description: Multiplies the accumulator by a 32-bit floating-point immediate `value`.
+
+- name: FDIV_IMM
+  opcode: 0x60
+  operation: Divide by float immediate
+  operands: f32 value
+  acc: a → a / value
+  description: Divides the accumulator by a 32-bit floating-point immediate `value`.<br>
+    If `value` is 0.0, the result is IEEE 754-defined (±Inf or NaN).
+
+- name: FADD_IMM_ST
+  opcode: 0x61
+  operation: Add float immediate to stack
+  operands: f32 value
+  stack: "[..., a] → [..., a + value]"
+  description: |
+    Pops the top float from the stack, adds a 32-bit immediate `value`, and pushes the result.
+
+- name: FSUB_IMM_ST
+  opcode: 0x62
+  operation: Subtract float immediate from stack
+  operands: f32 value
+  stack: "[..., a] → [..., a - value]"
+  description: |
+    Pops the top float from the stack, subtracts a 32-bit immediate `value`, and pushes the result.
+
+- name: FMUL_IMM_ST
+  opcode: 0x63
+  operation: Multiply stack top by float immediate
+  operands: f32 value
+  stack: "[..., a] → [..., a * value]"
+  description: |
+    Pops the top float from the stack, multiplies by a 32-bit immediate `value`, and pushes the result.
+
+- name: FDIV_IMM_ST
+  opcode: 0x64
+  operation: Divide stack top by float immediate
+  operands: f32 value
+  stack: "[..., a] → [..., a / value]"
+  description: |
+    Pops the top float from the stack, divides by a 32-bit immediate `value`, and pushes the result.<br>
+    If `value` is 0.0, the result is IEEE 754-defined (±Inf or NaN).
+
+- name: CMP_EQ
+  opcode: 0x65
+  operation: Compare integers equal
+  acc: a → a == b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack. The result is `a == b` and is pushed to the stack.
+
+- name: CMP_NE
+  opcode: 0x66
+  operation: Compare integers not equal
+  acc: a → a != b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack. The result is `a != b` and is pushed to the stack.
+
+- name: CMP_LT
+  opcode: 0x67
+  operation: Compare integers less than
+  acc: a → a < b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack. The result is `a < b` and is pushed to the stack.
+
+- name: CMP_GT
+  opcode: 0x68
+  operation: Compare integers greater than
+  acc: a → a > b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack. The result is `a > b` and is pushed to the stack.
+
+- name: CMP_LTE
+  opcode: 0x69
+  operation: Compare integers less than or equal
+  acc: a → a <= b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack. The result is `a <= b` and is pushed to the stack.
+
+- name: CMP_GTE
+  opcode: 0x6A
+  operation: Compare integers greater than or equal
+  acc: a → a >= b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit integers. `b` is popped from the stack. The result is `a >= b` and is pushed to the stack.
+
+- name: FCMP_EQ
+  opcode: 0x6B
+  operation: Compare floats equal
+  acc: a → a == b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floats. `b` is popped from the stack. The result is `a == b` and is pushed to the stack.
+
+- name: FCMP_NE
+  opcode: 0x6C
+  operation: Compare floats not equal
+  acc: a → a != b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floats. `b` is popped from the stack. The result is `a != b` and is pushed to the stack.
+
+- name: FCMP_LT
+  opcode: 0x6D
+  operation: Compare floats less than
+  acc: a → a < b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floats. `b` is popped from the stack. The result is `a < b` and is pushed to the stack.
+
+- name: FCMP_GT
+  opcode: 0x6E
+  operation: Compare floats greater than
+  acc: a → a > b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floats. `b` is popped from the stack. The result is `a > b` and is pushed to the stack.
+
+- name: FCMP_LTE
+  opcode: 0x6F
+  operation: Compare floats less than or equal
+  acc: a → a <= b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floats. `b` is popped from the stack. The result is `a <= b` and is pushed to the stack.
+
+- name: FCMP_GTE
+  opcode: 0x70
+  operation: Compare floats greater than or equal
+  acc: a → a >= b
+  stack: "[..., b] → [...]"
+  description: |
+    Both `a` and `b` must be 64-bit floats. `b` is popped from the stack. The result is `a >= b` and is pushed to the stack.
+
+- name: CMP_EQ0
+  opcode: 0x71
+  operation: Compare integer to zero
+  acc: a → a == 0
+  description: |
+    `a` must be a 64-bit integer. The result is `a == 0` and is pushed to the stack.
+
+- name: CMP_NE0
+  opcode: 0x72
+  operation: Compare integer to zero
+  acc: a → a != 0
+  description: |
+    `a` must be a 64-bit integer. The result is `a != 0` and is pushed to the stack.
+
+- name: CMP_LT0
+  opcode: 0x73
+  operation: Compare integer to zero
+  acc: a → a < 0
+  description: |
+    `a` must be a 64-bit integer. The result is `a < 0` and is pushed to the stack.
+
+- name: CMP_GT0
+  opcode: 0x74
+  operation: Compare integer to zero
+  acc: a → a > 0
+  description: |
+    `a` must be a 64-bit integer. The result is `a > 0` and is pushed to the stack.
+
+- name: CMP_LTE0
+  opcode: 0x75
+  operation: Compare integer to zero
+  acc: a → a <= 0
+  description: |
+    `a` must be a 64-bit integer. The result is `a <= 0` and is pushed to the stack.
+
+- name: CMP_GTE0
+  opcode: 0x76
+  operation: Compare integer to zero
+  acc: a → a >= 0
+  description: |
+    `a` must be a 64-bit integer. The result is `a >= 0` and is pushed to the stack.
+
+- name: FCMP_EQ0
+  opcode: 0x77
+  operation: Compare float to zero
+  acc: a → a == 0f
+  description: |
+    `a` must be a 64-bit float. The result is `a == 0.0` and is pushed to the stack.
+
+- name: FCMP_NE0
+  opcode: 0x78
+  operation: Compare float to zero
+  acc: a → a != 0f
+  description: |
+    `a` must be a 64-bit float. The result is `a != 0.0` and is pushed to the stack.
+
+- name: FCMP_LT0
+  opcode: 0x79
+  operation: Compare float to zero
+  acc: a → a < 0f
+  description: |
+    `a` must be a 64-bit float. The result is `a < 0.0` and is pushed to the stack.
+
+- name: FCMP_GT0
+  opcode: 0x7A
+  operation: Compare float to zero
+  acc: a → a > 0f
+  description: |
+    `a` must be a 64-bit float. The result is `a > 0.0` and is pushed to the stack.
+
+- name: FCMP_LTE0
+  opcode: 0x7B
+  operation: Compare float to zero
+  acc: a → a <= 0f
+  description: |
+    `a` must be a 64-bit float. The result is `a <= 0.0` and is pushed to the stack.
+
+- name: FCMP_GTE0
+  opcode: 0x7C
+  operation: Compare float to zero
+  acc: a → a >= 0f
+  description: |
+    `a` must be a 64-bit float. The result is `a >= 0.0` and is pushed to the stack.
+
+- name: PUSH_ACC
+  opcode: 0x80
+  operation: Push accumulator
+  stack: "[...] → [..., acc]"
+  description: |
+    `acc` is the current 64-bit value in the accumulator. `acc` is pushed onto the stack.
+
+- name: PUSH_SP
+  opcode: 0x81
+  operation: Push stack pointer
+  stack: "[...] → [..., sp]"
+  description: |
+    `sp` is the current 64-bit value in the stack pointer register. `sp` is pushed onto the stack.
+  notes:
+    - The stack pointer will never be a real memory pointer in sandbox mode. Other than that, its value is implementation-defined.
+
+- name: POP_ACC
+  opcode: 0x82
+  operation: Pop stack value into accumulator
+  acc: ... → value
+  stack: "[..., value] → [...]"
+  description: |
+    The topmost stack value is popped and moved into the accumulator.
+
+- name: POP_SP
+  opcode: 0x83
+  operation: Pop stack value into stack pointer
+  sp: ... → value
+  stack: "[..., value] → [...]"
+  description: |
+    The topmost stack value is popped and moved into the stack pointer register.
+
+- name: POP_DISCARD
+  opcode: 0x84
+  operation: Pop `n` stack values and discard them
+  operands: u8 n
+  stack: "[..., [elem1, ...]] → [...]"
+  description: |
+    Pops `n` elements from the stack and discards their values.
+
+- name: CONST
+  opcode: 0x85
+  operation: Move constant value into accumulator
+  operands: i8 value
+  acc: ... → value
+  description: |
+    Loads an 8-bit immediate value and moves it into the accumulator.
+
+- name: CONST32
+  opcode: 0x86
+  operation: Move constant value into accumulator
+  operands: i32 value
+  acc: ... → value
+  description: |
+    Loads an 32-bit immediate value and moves it into the accumulator.
+
+- name: CONST64
+  opcode: 0x87
+  operation: Move constant value into accumulator
+  operands: i64 value
+  acc: ... → value
+  description: |
+    Loads an 64-bit immediate value and moves it into the accumulator.
+
+- name: CONST_ST
+  opcode: 0x88
+  operation: Push constant value to stack
+  operands: i8 value
+  acc: ... → value
+  description: |
+    Loads an 8-bit immediate value and pushes it to the stack.
+
+- name: CONST32_ST
+  opcode: 0x89
+  operation: Push constant value to stack
+  operands: i32 value
+  acc: ... → value
+  description: |
+    Loads an 32-bit immediate value and pushes it to the stack.
+
+- name: CONST64_ST
+  opcode: 0x8A
+  operation: Push constant value to stack
+  operands: i64 value
+  acc: ... → value
+  description: |
+    Loads an 64-bit immediate value and pushes it to the stack.
+
+- name: LOAD
+  opcode: 0x8B
+  operation: Load stack value into accumulator
+  operands: i16 index
+  acc: ... → value
+  description: |
+    The way this instruction loads a value depends on whether `index` is positive or negative.<br>
+    If `index` is positive (>= 0), load from the current frame's stack base plus `index`.<br>
+    If `index` is negative (< 0), load from the stack pointer register minus the absolute value of `index`.<br>
+    <br>
+    For example, a given `index` of -1 would load the topmost stack value, and a given `index` of 0 would load the first stack value.
+
+- name: LOAD_ST
+  opcode: 0x8C
+  operation: Load stack value and push to stack
+  operands: i16 index
+  stack: "[...] → [..., value]"
+  description: |
+    The way this instruction loads a value depends on whether `index` is positive or negative.<br>
+    If `index` is positive (>= 0), load from the current frame’s stack base plus `index`.<br>
+    If `index` is negative (< 0), load from the stack pointer register minus the absolute value of `index`.<br>
+    <br>
+    For example, an `index` of -1 would load the topmost stack value and push it, while an `index` of 0 would load the first stack value and push it.
+
+- name: STORE
+  opcode: 0x8D
+  operation: Store accumulator value to stack
+  operands: i16 index
+  description: |
+    The way this instruction stores a value depends on whether `index` is positive or negative.<br>
+    If `index` is positive (>= 0), store to the current frame’s stack base plus `index`.<br>
+    If `index` is negative (< 0), store to the stack pointer register minus the absolute value of `index`.<br>
+    <br>
+    For example, an `index` of -1 stores the accumulator to the topmost stack slot, while an `index` of 0 stores to the first slot.
+
+- name: STORE_ST
+  opcode: 0x8E
+  operation: Pop value and store to stack
+  operands: i16 index
+  stack: "[..., value] → [...]"
+  description: |
+    The way this instruction stores a value depends on whether `index` is positive or negative.<br>
+    If `index` is positive (>= 0), store to the current frame’s stack base plus `index`.<br>
+    If `index` is negative (< 0), store to the stack pointer register minus the absolute value of `index` **before** the value is popped.<br>
+    <br>
+    For example, an `index` of -1 stores the popped value to the topmost slot before popping, while an `index` of 0 stores to the first slot.
+
+- name: JMP
+  opcode: 0x97
+  operation: Branch always
+  operands: i16 branch
+  description: |
+    Unconditionally increments the program counter by `branch` as a signed integer.
+
+- name: JZ
+  opcode: 0x98
+  operation: Branch if zero
+  operands: i16 branch
+  description: |
+    Increments the program counter by `branch` as a signed integer if the value in the accumulator is equal to 0.
+
+- name: JNZ
+  opcode: 0x99
+  operation: Branch if not zero
+  operands: i16 branch
+  description: |
+    Increments the program counter by `branch` as a signed integer if the value in the accumulator is not equal to 0.
+
+- name: CALL
+  opcode: 0x9A
+  operation: Invoke CallEntry
+  operands: u32 target, u8 argc
+  acc: ... → garbage or a return value
+  stack: "[..., [arg1, ...]] → [...]"
+  description: |
+    `target` is an address pointing to a `CallEntry` within the data section.<br>
+    <br>
+    The stack must contain `argc` values.<br>
+    <br>
+    For simplicity, we will refer to the addressed `CallEntry` as 'the function.' This does not mean that a `CallEntry` always has to be a function symbol.<br>
+    <br>
+    If the function is not yet resolved, its module and entry point are resolved and cached for future use.<br>
+    <br>
+    If the function is not native, the `argc` values are popped from the stack. A new stack frame is created on the current thread. 
+    The `argc` values are pushed in reverse order so that they appear in the same order on the new frame as they were in the previous frame.
+    The new frame is then made the current, and the program counter is set to the specified entry of the function.<br>
+    <br>
+    If the function is native, the `argc` values are popped from the stack and are passed as parameters to the implementation of the function.
+    The code is executed in an implementation-dependent manner. When the platform-dependent code returns, the return value storage is moved to the accumulator regardless of the functions return type. 
+    In the case of a void function, the accumulator will contain garbage data.
+
+- name: CALL_EX
+  opcode: 0x9B
+  operation: Invoke CallEntry
+  operands: u32 target, u16 argc
+  acc: ... → garbage or a return value
+  stack: "[.., [arg1, ...]] → [...]"
+  description: |
+    Works like the [CALL](#call) instruction, but with a wide `argc` operand.
+
+- name: CALL_DYN
+  opcode: 0x9C
+  operation: Invoke CallEntry dynamically
+  operands: u16 argc
+  acc: target → garbage or a return value
+  stack: "[.., [arg1, ...]] → [...]"
+  description: |
+    Works like the [CALL_EX](#call-ex) instruction, but the target address is determined at runtime. 
+    The target address is taken from the low 32 bits of the accumulator and treated as an unsigned 32-bit integer.
+
+- name: CALL_TINY
+  opcode: 0x9D
+  operation: Invoke CallEntry
+  operands: u16 target, u8 argc
+  acc: ... → garbage or a return value
+  stack: "[.., [arg1, ...]] → [...]"
+  description: |
+    Works like the [CALL](#call) instruction, but with a narrow `target` operand.
+
+- name: CALL_TINY_EX
+  opcode: 0x9E
+  operation: Invoke CallEntry
+  operands: u16 target, u16 argc
+  acc: ... → garbage or a return value
+  stack: "[.., [arg1, ...]] → [...]"
+  description: |
+    Works like the [CALL](#call) instruction, but with a narrow `target` operand and wide `argc` operand.
+
+- name: RET
+  opcode: 0x9F
+  operation: Return from callable
+  stack: "[...] → empty"
+  description: |
+    Any values on the current stack frame are discarded. The interpreter then returns control to the caller by updating the program counter to a saved value.

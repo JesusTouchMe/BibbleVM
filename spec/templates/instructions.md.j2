@@ -1,0 +1,49 @@
+## **The BibbleVM Instruction Set**
+*Disclaimer: I got really bored of writing 10 versions of the same arithmetic instructions, so I had an AI do it for me.
+This means that there could be some writing inconsistencies, but the overall logic of them should be accurate.
+Readers are encouraged to suggest edits to improve clarity and consistency for these instructions.*
+
+{% for ins in instructions %}
+> ### {{ ins.name }}
+
+#### **Opcode** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }} }
+{{ ins.opcode }} ({{ '{:#x}'.format(ins.opcode) }})
+
+#### **Operation** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-operation }
+{{ ins.operation }}
+
+#### **Operands** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-operands }
+{{ ins.operands or 'None' }}
+
+#### **Accumulator** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-acc }
+{{ ins.acc or 'No change' }}
+
+[comment]: # (The Stack Pointer segment is to show changes to the stack pointer directly. Not push/pop)
+
+{% if 'sp' in ins %}
+#### **Stack Pointer (Register)** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-sp }
+{{ ins.sp }}
+{% endif %}
+
+#### **Stack** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-stack }
+{{ ins.stack or 'No change' }}
+
+#### **Description** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-desc }
+{{ ins.description }}
+
+{% if 'errors' in ins %}
+#### **Errors** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-errors }
+{% for error in ins.errors -%}
+{{ error }}<br>
+{% endfor %}
+{% endif %}
+
+{% if 'notes' in ins %}
+#### **Notes** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-notes }
+{% for note in ins.notes -%}
+{{ note }}<br>
+{% endfor %}
+{% endif %}
+
+---
+{% endfor %}

@@ -2,3 +2,4 @@ mkdocs
 mkdocs-material
 jinja2
 pyyaml
+mkdocs-awesome-pages-plugin
