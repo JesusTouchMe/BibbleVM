@@ -1,0 +1,52 @@
+Object + Handle layout:
+struct Handle {
+    Object* obj;
+    u8 generation;
+    u32 flags;
+}
+
+struct Object {
+    Handle* handle; // When we move an object, we reflect the changes in its handle. This pointer is the same that references to this object use.
+    Class* cls;
+    u8 fields[];
+}
+Is it more efficient to make fields be 8 byte slots because of how cpus work? And is it worth the massive byte cost for byte fields?
+
+
+Allocating handles:
+Due to the constant size of Handle, we can use a specialized allocator for these to maximize speed.
+
+
+Stack / Root Handling:
+Anything that has an object actually has a handle pointer. We do this so we can move objects without hassle.
+Want to support compiler generated precise root metadata in the future for more precise gc. Use a conservative root scanner for now.
+
+
+Nursery:
+Semi-space layout: from-space (active) and to-space (empty)
+Bump allocator for fast allocations
+Minor gc:
+    Scan roots once, copy live objects to to-space or promote to big boy heap
+    Scan copied objects fields recursively
+    Remember to update handles for survivors!
+    Empty from-space
+    Swap from-space and to-space
+Maybe use multiple nurseries to track aging instead of maintaining an age field in object?
+
+
+Old Generation:
+Use a region based heap:
+    Each region is some size and can be compacted if a certain fragmentation threshold is reached.
+    Regions can be separately garbage collected.
+    Makes gc cycles in the old generation a bit faster.
+Keep write barrier or remembered set for old -> nursery references.
+Maybe use multiple old generation heaps to really minimize the amount of time gc cycles can take.
+
+
+Large Objects:
+We use a whole separate space for large objects and never move them. They start here and they die here.
+
+
+Random Optimizations:
+Thread local nurseries for lock free allocations, but this could be annoying when sharing objects with other threads.
+Batch destruction instead of immediately running destructors. Just ensure we promise that they're run "at some point" and not when the object is unreachable.
