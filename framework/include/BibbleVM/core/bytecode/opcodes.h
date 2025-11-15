@@ -15,7 +15,6 @@ namespace bibble {
     using u32 = uint32_t;
     using u64 = uint64_t;
 
-
     enum class ByteOpcode : u8 {
         NOP = 0x00,
         HLT = 0x01,
@@ -147,6 +146,10 @@ namespace bibble {
         JZ = 0x98,
         JNZ = 0x99,
         CALL = 0x9A,
+        CALL_EX = 0x9B,
+        CALL_DYN = 0x9C,
+        CALL_TINY = 0x9D,
+        CALL_TINY_EX = 0x9E,
         RET = 0x9F,
     };
 

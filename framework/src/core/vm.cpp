@@ -69,6 +69,10 @@ namespace bibble {
         return mStack;
     }
 
+    Interpreter& VM::interpreter() {
+        return mInterpreter;
+    }
+
     bool VM::push(Value value) {
         if (mExited) return false;
 
@@ -111,12 +115,6 @@ namespace bibble {
 
     bool VM::hasExited() const {
         return mExited;
-    }
-
-    void VM::call(const CallableTarget* target) {
-        if (mExited) return;
-
-        mInterpreter.execute(*this, target->module, target->entry);
     }
 
     VM::VM(VMConfig config)

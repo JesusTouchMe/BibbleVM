@@ -5,6 +5,7 @@
 #include "BibbleVM/core/vm.h"
 
 #define DEFINE_DISPATCH(opcode) DispatchErr Dispatch_##opcode(VM& vm, BytecodeReader& code)
+#define DEFINE_DISPATCH_UTIL(name, ...) static DispatchErr name(VM& vm, __VA_ARGS__)
 #define REGISTER_DISPATCH(table, opcode) table[static_cast<size_t>(ByteOpcode::opcode)] = Dispatch_##opcode
 #define REGISTER_DISPATCH_EXT(table, opcode) table[static_cast<size_t>(ExtendedOpcode::opcode)] = Dispatch_##opcode
 
@@ -12,7 +13,35 @@
 #define DISPATCH_SUCCEED() return DISPATCH_SUCCESS
 #define DISPATCH_FAIL() do { vm.exit(-2); return DISPATCH_ERROR; } while(0)
 
+#define DISPATCH_CALL_UTIL(name, ...) if (DispatchErr _err = name(vm, __VA_ARGS__); _err != DISPATCH_SUCCESS) return _err
+
 namespace bibble {
+    template<class TargetIndexT, class ArgcT>
+    DEFINE_DISPATCH_UTIL(CallInstHelper, TargetIndexT targetIndex, ArgcT argc) {
+        std::vector<Value> args;
+        args.reserve(argc);
+
+        for (u16 i = 0; i < argc; i++) {
+            std::optional<Value> value = vm.pop();
+            if (!value.has_value()) DISPATCH_FAIL();
+
+            args.push_back(value.value());
+        }
+
+        const CallableTarget* target = vm.currentModule()->data().getCallable(targetIndex, vm);
+        if (target == nullptr) DISPATCH_FAIL();
+
+        vm.stack().pushFrame(argc);
+
+        for (u16 i = 0; i < argc; i++) {
+            vm.stack().getTopFrame()->operator[](i) = args[i];
+        }
+
+        CallableTrampoline(*target, vm);
+
+        DISPATCH_SUCCEED();
+    }
+
     DEFINE_DISPATCH(NOP) {
         DISPATCH_SUCCEED();
     }
@@ -62,91 +91,94 @@ namespace bibble {
     }
 
     DEFINE_DISPATCH(ADD) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() += s0->integer();
+        vm.acc().integer() += b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SUB) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() -= s0->integer();
+        vm.acc().integer() -= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(MUL) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() *= s0->integer();
+        vm.acc().integer() *= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(DIV) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() /= s0->integer();
+        vm.acc().integer() /= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(MOD) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> bOpt = vm.pop();
+        if (!bOpt.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() %= s0->integer();
+        i64 a = vm.acc().integer();
+        i64 b = bOpt->integer();
+
+        vm.acc().integer() = a - (a / b) * b;
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(AND) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() &= s0->integer();
+        vm.acc().integer() &= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(OR) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() |= s0->integer();
+        vm.acc().integer() |= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(XOR) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() ^= s0->integer();
+        vm.acc().integer() ^= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SHL) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() <<= s0->integer();
+        vm.acc().integer() <<= b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SHR) {
-        std::optional<Value> s0 = vm.pop();
-        if (!s0.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        if (!b.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() >>= s0->integer();
+        vm.acc().integer() >>= b->integer();
 
         DISPATCH_SUCCEED();
     }
@@ -164,201 +196,207 @@ namespace bibble {
     }
 
     DEFINE_DISPATCH(ADD2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() + s0->integer();
+        vm.acc().integer() = a->integer() + b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SUB2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() - s0->integer();
+        vm.acc().integer() = a->integer() - b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(MUL2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() * s0->integer();
+        vm.acc().integer() = a->integer() * b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(DIV2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() / s0->integer();
+        vm.acc().integer() = a->integer() / b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(MOD2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> bOpt = vm.pop();
+        std::optional<Value> aOpt = vm.pop();
+        if (!bOpt.has_value() || !aOpt.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() % s0->integer();
+        i64 a = aOpt->integer();
+        i64 b = bOpt->integer();
+
+        vm.acc().integer() = a - (a / b) * b;
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(AND2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() & s0->integer();
+        vm.acc().integer() = a->integer() & b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(OR2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() | s0->integer();
+        vm.acc().integer() = a->integer() | b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(XOR2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() ^ s0->integer();
+        vm.acc().integer() = a->integer() ^ b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SHL2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() << s0->integer();
+        vm.acc().integer() = a->integer() << b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SHR2) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() = s1->integer() >> s0->integer();
+        vm.acc().integer() = a->integer() >> b->integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(ADD_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() + s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() + b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SUB_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() - s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() - b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(MUL_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() * s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() * b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(DIV_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() / s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() / b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(MOD_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> bOpt = vm.pop();
+        std::optional<Value> aOpt = vm.pop();
+        if (!bOpt.has_value() || !aOpt.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() % s0->integer())) DISPATCH_FAIL();
+        i64 a = aOpt->integer();
+        i64 b = bOpt->integer();
+
+        if (!vm.push(a - (a / b) * b)) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(AND_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() & s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() & b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(OR_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() | s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() | b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(XOR_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() ^ s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() ^ b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SHL_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() << s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() << b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(SHR_ST) {
-        std::optional<Value> s0 = vm.pop();
-        std::optional<Value> s1 = vm.pop();
-        if (!s0.has_value() || !s1.has_value()) DISPATCH_FAIL();
+        std::optional<Value> b = vm.pop();
+        std::optional<Value> a = vm.pop();
+        if (!b.has_value() || !a.has_value()) DISPATCH_FAIL();
 
-        if (!vm.push(s1->integer() >> s0->integer())) DISPATCH_FAIL();
+        if (!vm.push(a->integer() >> b->integer())) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
@@ -423,7 +461,10 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        vm.acc().integer() %= value.value();
+        i64 a = vm.acc().integer();
+        i64 b = value.value();
+
+        vm.acc().integer() = a - (a / b) * b;
 
         DISPATCH_SUCCEED();
     }
@@ -533,7 +574,10 @@ namespace bibble {
         i64 index = vm.sp().integer() - 1;
         if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
 
-        (*frame)[index].integer() %= value.value();
+        i64 a = (*frame)[index].integer();
+        i64 b = value.value();
+
+        (*frame)[index].integer() = a - (a / b) * b;
 
         DISPATCH_SUCCEED();
     }
@@ -1168,36 +1212,54 @@ namespace bibble {
 
     DEFINE_DISPATCH(CALL) {
         std::optional<u32> targetIndexOpt = code.fetchU32();
+        std::optional<u8> argcOpt = code.fetchU8();
+
+        if (!targetIndexOpt.has_value()) DISPATCH_FAIL();
+        if (!argcOpt.has_value()) DISPATCH_FAIL();
+
+        DISPATCH_CALL_UTIL(CallInstHelper, targetIndexOpt.value(), argcOpt.value());
+        DISPATCH_SUCCEED();
+    }
+
+    DEFINE_DISPATCH(CALL_EX) {
+        std::optional<u32> targetIndexOpt = code.fetchU32();
         std::optional<u16> argcOpt = code.fetchU16();
 
         if (!targetIndexOpt.has_value()) DISPATCH_FAIL();
         if (!argcOpt.has_value()) DISPATCH_FAIL();
 
-        u32 targetIndex = targetIndexOpt.value();
-        u16 argc = argcOpt.value();
+        DISPATCH_CALL_UTIL(CallInstHelper, targetIndexOpt.value(), argcOpt.value());
+        DISPATCH_SUCCEED();
+    }
 
-        std::vector<Value> args;
-        args.reserve(argc);
+    DEFINE_DISPATCH(CALL_DYN) {
+        std::optional<u16> argcOpt = code.fetchU16();
 
-        for (u16 i = 0; i < argc; i++) {
-            std::optional<Value> value = vm.pop();
-            if (!value.has_value()) DISPATCH_FAIL();
+        if (!argcOpt.has_value()) DISPATCH_FAIL();
 
-            args.push_back(value.value());
-        }
+        DISPATCH_CALL_UTIL(CallInstHelper, vm.acc().integer(), argcOpt.value());
+        DISPATCH_SUCCEED();
+    }
 
-        const CallableTarget* target = vm.currentModule()->data().getCallable(targetIndex, vm);
-        if (target == nullptr) DISPATCH_FAIL();
+    DEFINE_DISPATCH(CALL_TINY) {
+        std::optional<u16> targetIndexOpt = code.fetchU16();
+        std::optional<u8> argcOpt = code.fetchU8();
 
-        vm.stack().pushFrame(argc);
+        if (!targetIndexOpt.has_value()) DISPATCH_FAIL();
+        if (!argcOpt.has_value()) DISPATCH_FAIL();
 
-        for (u16 i = 0; i < argc; i++) {
-            vm.stack().getTopFrame()->operator[](i) = args[i];
-        }
+        DISPATCH_CALL_UTIL(CallInstHelper, targetIndexOpt.value(), argcOpt.value());
+        DISPATCH_SUCCEED();
+    }
 
-        //CallableTrampoline(*target, vm);
-        vm.call(target);
+    DEFINE_DISPATCH(CALL_TINY_EX) {
+        std::optional<u16> targetIndexOpt = code.fetchU16();
+        std::optional<u16> argcOpt = code.fetchU16();
 
+        if (!targetIndexOpt.has_value()) DISPATCH_FAIL();
+        if (!argcOpt.has_value()) DISPATCH_FAIL();
+
+        DISPATCH_CALL_UTIL(CallInstHelper, targetIndexOpt.value(), argcOpt.value());
         DISPATCH_SUCCEED();
     }
 
@@ -1330,6 +1392,10 @@ namespace bibble {
         REGISTER_DISPATCH(dispatchTable, JZ);
         REGISTER_DISPATCH(dispatchTable, JNZ);
         REGISTER_DISPATCH(dispatchTable, CALL);
+        REGISTER_DISPATCH(dispatchTable, CALL_EX);
+        REGISTER_DISPATCH(dispatchTable, CALL_DYN);
+        REGISTER_DISPATCH(dispatchTable, CALL_TINY);
+        REGISTER_DISPATCH(dispatchTable, CALL_TINY_EX);
         REGISTER_DISPATCH(dispatchTable, RET);
     }
 }

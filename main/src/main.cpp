@@ -18,7 +18,7 @@ int main() {
 
         // test
         0xFF, 0xFF, 0xFF, 0xFF,
-        0x00, 0x00, 0x00, 0x11,
+        0x00, 0x00, 0x00, 0x10,
 
 
 
@@ -28,7 +28,7 @@ int main() {
         0x85, 0x22, // CONST 34
         0x32, 0x00, 0x00, 0x00, 0x23, // ADD_IMM 35
         0x80, // PUSH_ACC
-        0x9A, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, // CALL 8, 1
+        0x9A, 0x00, 0x00, 0x00, 0x08, 0x01, // CALL 8, 1
         0x01, 0x00, // HLT 0
 
         // test
@@ -42,7 +42,7 @@ int main() {
 
     bibble::Section data({ &bytecode[0], 16 });
     bibble::Section strtab({ &bytecode[16], 0 });
-    bibble::Section code({ &bytecode[16], 23 });
+    bibble::Section code({ &bytecode[16], 22 });
 
     bibble::u32 moduleH = vm->addModule(std::make_unique<bibble::Module>(std::move(bytecode), bibble::DataSection(data), bibble::StrtabSection(strtab), bibble::CodeSection(code)));
     if (vm->hasExited()) {
@@ -76,7 +76,7 @@ int main() {
         return 1;
     }
 
-    vm->call(&mainFunction->target());
+    CallableTrampoline(mainFunction->target(), *vm);
 
     if (!vm->hasExited()) return 100;
 

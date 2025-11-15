@@ -40,6 +40,8 @@ namespace bibble {
         Value& sp();
         Stack& stack();
 
+        Interpreter& interpreter();
+
         // true on success
         bool push(Value value);
         std::optional<Value> pop();
@@ -49,8 +51,6 @@ namespace bibble {
         void exit(int code);
         int getExitCode() const;
         bool hasExited() const;
-
-        void call(const CallableTarget* target);
 
     private:
         VMConfig mConfig;

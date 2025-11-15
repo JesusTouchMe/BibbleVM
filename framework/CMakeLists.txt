@@ -13,6 +13,7 @@ set(SOURCES
     src/core/call/function.cpp
     src/core/bytecode/code_section.cpp
     src/core/bytecode/strtab_section.cpp
+    src/core/call/callable_target.cpp
 )
 
 set(HEADERS
