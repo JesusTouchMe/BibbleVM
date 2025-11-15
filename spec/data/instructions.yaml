@@ -1055,7 +1055,7 @@
   acc: target → garbage or a return value
   stack: "[.., [arg1, ...]] → [...]"
   description: |
-    Works like the [CALL_EX](#call-ex) instruction, but the target address is determined at runtime. 
+    Works like the [CALL_EX](#call_ex) instruction, but the target address is determined at runtime. 
     The target address is taken from the low 32 bits of the accumulator and treated as an unsigned 32-bit integer.
 
 - name: CALL_TINY
