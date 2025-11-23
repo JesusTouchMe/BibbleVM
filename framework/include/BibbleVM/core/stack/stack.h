@@ -3,18 +3,34 @@
 #ifndef BIBBLEVM_CORE_STACK_H
 #define BIBBLEVM_CORE_STACK_H 1
 
-#include "BibbleVM/core/stack/frame.h"
+#include "BibbleVM/core/value/value.h"
+
+#include <memory>
+#include <optional>
 
 namespace bibble {
+    // non-resizable lifo stack
     class Stack {
     public:
-        Frame* getTopFrame() const;
+        Stack(u64 size);
 
-        Frame* pushFrame(size_t size);
+        i64 sb() const;
+        Value& sp();
+
+        bool pushFrame(i64 minSize); // true on success
         bool popFrame(); // true on success
 
+        bool isWithinBounds(i64 index) const; // index > sb && index < capacity
+
+        Value& operator[](size_t index);
+        const Value& operator[](size_t index) const;
+
     private:
-        std::unique_ptr<Frame> mTopFrame = nullptr;
+        std::unique_ptr<Value[]> mMemory;
+        i64 mCapacity;
+
+        i64 mStackBase = -1; // index of the previous frames stack base value saved. used for stack underflow checks
+        Value mStackPointer = 0; // SP register following the BibbleVM specification. stored as Value for simplicity
     };
 }
 

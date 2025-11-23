@@ -5,6 +5,7 @@
 
 namespace bibble {
     struct VMConfig {
+        i64 stackSize = 0x100000; // this is the value of 8MB divided by 8 which is the size of a stack slot. in total, gives us 8mb big stack
         bool sandbox = false;
     };
 }

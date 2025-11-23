@@ -62,7 +62,7 @@ namespace bibble {
     }
 
     Value& VM::sp() {
-        return mStack.getTopFrame()->sp();
+        return mStack.sp();
     }
 
     Stack& VM::stack() {
@@ -76,10 +76,9 @@ namespace bibble {
     bool VM::push(Value value) {
         if (mExited) return false;
 
-        Frame* frame = mStack.getTopFrame();
-        if (frame == nullptr || !frame->isWithinBounds(sp().integer())) return false;
+        if (!mStack.isWithinBounds(sp().integer())) return false;
 
-        (*frame)[sp().integer()++] = value;
+        mStack[sp().integer()++] = value;
 
         return true;
     }
@@ -87,10 +86,9 @@ namespace bibble {
     std::optional<Value> VM::pop() {
         if (mExited) return std::nullopt;
 
-        Frame* frame = mStack.getTopFrame();
-        if (frame == nullptr || !frame->isWithinBounds(sp().integer() - 1)) return std::nullopt;
+        if (!mStack.isWithinBounds(sp().integer() - 1)) return std::nullopt;
 
-        return (*frame)[--sp().integer()];
+        return mStack[--sp().integer()];
     }
 
     bool VM::trap(u8 code) {
@@ -119,6 +117,7 @@ namespace bibble {
 
     VM::VM(VMConfig config)
         : mConfig(config)
+        , mStack(config.stackSize)
         , mInterpreter(config) {}
 
     std::unique_ptr<VM> CreateVM(VMConfig config) {

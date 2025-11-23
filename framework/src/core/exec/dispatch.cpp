@@ -17,7 +17,7 @@
 
 namespace bibble {
     template<class TargetIndexT, class ArgcT>
-    DEFINE_DISPATCH_UTIL(CallInstHelper, TargetIndexT targetIndex, ArgcT argc) {
+    DEFINE_DISPATCH_UTIL(CallInstHelper, TargetIndexT targetIndex, ArgcT argc) { // TODO: optimize this for new stack design to avoid allocating a vector of args
         std::vector<Value> args;
         args.reserve(argc);
 
@@ -34,7 +34,7 @@ namespace bibble {
         vm.stack().pushFrame(argc);
 
         for (u16 i = 0; i < argc; i++) {
-            vm.stack().getTopFrame()->operator[](i) = args[i];
+            vm.push(args[i]);
         }
 
         CallableTrampoline(*target, vm);
@@ -402,21 +402,23 @@ namespace bibble {
     }
 
     DEFINE_DISPATCH(NEG_ST) {
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() = -((*frame)[index].integer());
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() = -stack[index].integer();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(NOT_ST) {
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() = ~((*frame)[index].integer());
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() = ~stack[index].integer();
 
         DISPATCH_SUCCEED();
     }
@@ -518,11 +520,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() += value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() += value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -531,11 +534,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() -= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() -= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -544,11 +548,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() *= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() *= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -557,11 +562,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() /= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() /= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -570,14 +576,15 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        i64 a = (*frame)[index].integer();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        i64 a = stack[index].integer();
         i64 b = value.value();
 
-        (*frame)[index].integer() = a - (a / b) * b;
+        stack[index].integer() = a - (a / b) * b;
 
         DISPATCH_SUCCEED();
     }
@@ -586,11 +593,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() &= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() &= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -599,11 +607,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() |= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() |= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -612,11 +621,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() ^= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() ^= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -625,11 +635,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() <<= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() <<= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -638,11 +649,12 @@ namespace bibble {
         std::optional<i32> value = code.fetchI32();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].integer() >>= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].integer() >>= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -809,11 +821,12 @@ namespace bibble {
         std::optional<float> value = code.fetchFloat();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].floating() += value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].floating() += value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -822,11 +835,12 @@ namespace bibble {
         std::optional<float> value = code.fetchFloat();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].floating() -= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].floating() -= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -835,11 +849,12 @@ namespace bibble {
         std::optional<float> value = code.fetchFloat();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].floating() *= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].floating() *= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -848,11 +863,12 @@ namespace bibble {
         std::optional<float> value = code.fetchFloat();
         if (!value.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
         i64 index = vm.sp().integer() - 1;
-        if (frame == nullptr || !frame->isWithinBounds(index)) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
 
-        (*frame)[index].floating() /= value.value();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index].floating() /= value.value();
 
         DISPATCH_SUCCEED();
     }
@@ -1133,52 +1149,60 @@ namespace bibble {
     }
 
     DEFINE_DISPATCH(LOAD) {
-        std::optional<i16> index = code.fetchI16();
-        if (!index.has_value()) DISPATCH_FAIL();
+        std::optional<i16> indexOpt = code.fetchI16();
+        if (!indexOpt.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
-        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
+        i64 index = indexOpt.value() + stack.sb() + 1;
 
-        vm.acc() = (*frame)[index.value()];
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        vm.acc() = stack[index];
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(LOAD_ST) {
-        std::optional<i16> index = code.fetchI16();
-        if (!index.has_value()) DISPATCH_FAIL();
+        std::optional<i16> indexOpt = code.fetchI16();
+        if (!indexOpt.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
-        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
+        i64 index = indexOpt.value() + stack.sb() + 1;
 
-        if (!vm.push((*frame)[index.value()])) DISPATCH_FAIL();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        if (!vm.push(stack[index])) DISPATCH_FAIL();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(STORE) {
-        std::optional<i16> index = code.fetchI16();
-        if (!index.has_value()) DISPATCH_FAIL();
+        std::optional<i16> indexOpt = code.fetchI16();
+        if (!indexOpt.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
-        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
+        i64 index = indexOpt.value() + stack.sb() + 1;
 
-       (*frame)[index.value()] = vm.acc();
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
+
+        stack[index] = vm.acc();
 
         DISPATCH_SUCCEED();
     }
 
     DEFINE_DISPATCH(STORE_ST) {
-        std::optional<i16> index = code.fetchI16();
-        if (!index.has_value()) DISPATCH_FAIL();
+        std::optional<i16> indexOpt = code.fetchI16();
+        if (!indexOpt.has_value()) DISPATCH_FAIL();
 
-        Frame* frame = vm.stack().getTopFrame();
-        if (frame == nullptr || !frame->isWithinBounds(index.value())) DISPATCH_FAIL();
+        Stack& stack = vm.stack();
+        i64 index = indexOpt.value() + stack.sb() + 1;
+
+        if (!stack.isWithinBounds(index)) DISPATCH_FAIL();
 
         std::optional<Value> value = vm.pop();
         if (!value.has_value()) DISPATCH_FAIL();
 
-       (*frame)[index.value()] = value.value();
+        stack[index] = value.value();
 
         DISPATCH_SUCCEED();
     }

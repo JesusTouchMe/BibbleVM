@@ -4,7 +4,6 @@ set(SOURCES
         src/core/bytecode/bytecode_reader.cpp
     src/core/exec/dispatch.cpp
     src/core/vm.cpp
-    src/core/stack/frame.cpp
     src/core/stack/stack.cpp
     src/core/exec/interpreter.cpp
         src/core/bytecode/section.cpp
@@ -23,7 +22,6 @@ set(HEADERS
     include/BibbleVM/core/exec/dispatch.h
     include/BibbleVM/config.h
     include/BibbleVM/core/value/value.h
-    include/BibbleVM/core/stack/frame.h
     include/BibbleVM/core/stack/stack.h
     include/BibbleVM/core/exec/interpreter.h
         include/BibbleVM/core/bytecode/section.h
