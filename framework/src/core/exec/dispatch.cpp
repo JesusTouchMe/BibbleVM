@@ -1207,6 +1207,18 @@ namespace bibble {
         DISPATCH_SUCCEED();
     }
 
+    DEFINE_DISPATCH(RESERVE) {
+        std::optional<u8> count = code.fetchU8();
+        if (!count.has_value()) DISPATCH_FAIL();
+
+        i64 newSp = vm.sp().integer() + count.value();
+        if (!vm.stack().isWithinBounds(newSp)) DISPATCH_FAIL();
+
+        vm.sp().integer() = newSp;
+
+        DISPATCH_SUCCEED();
+    }
+
     DEFINE_DISPATCH(JMP) {
         std::optional<i16> branch = code.fetchI16();
         if (!branch.has_value()) DISPATCH_FAIL();
@@ -1412,6 +1424,7 @@ namespace bibble {
         REGISTER_DISPATCH(dispatchTable, LOAD_ST);
         REGISTER_DISPATCH(dispatchTable, STORE);
         REGISTER_DISPATCH(dispatchTable, STORE_ST);
+        REGISTER_DISPATCH(dispatchTable, RESERVE);
         REGISTER_DISPATCH(dispatchTable, JMP);
         REGISTER_DISPATCH(dispatchTable, JZ);
         REGISTER_DISPATCH(dispatchTable, JNZ);

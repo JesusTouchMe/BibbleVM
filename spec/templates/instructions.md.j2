@@ -1,4 +1,51 @@
-## **The BibbleVM Instruction Set**
+# **The BibbleVM Instruction Set**
+This page gives details about the format of each instruction and the operation it performs.
+
+## **The Meaning of "must"**
+The description of each instruction is always given in the context of bytecode following the constraints of [The Code Section](#todo-add-code-section-link).
+In the descriptions of many instructions, it is stated that something "must" or "must not" be the case: "Both `a` and `b` must be 64-bit integers."
+If some constraint (a "must" or "must not") in a description is not satisfied at runtime, behavior is undefined.
+
+## **Instruction Encoding**
+An instruction consists of a 1-3 byte opcode followed directly by zero or more operands.
+By default, an opcode consists of 1 byte, but when set to the hexadecimal value `FF`, the following 2 bytes are read and assembled as an extended opcode.
+<br><br>
+Operands are encoded in little-endian byte order in the same order as specified per instruction with no padding between them unless an instruction specifies otherwise.
+
+## **Format of Instruction Descriptions**
+> ### MNEMONIC {: #no-nav-example }
+
+#### **Opcode** {: #no-nav-example-opcode }
+Opcode for this instruction
+
+#### **Operation** {: #no-nav-example-operation }
+Short description of the instruction
+
+#### **Operands** {: #no-nav-example-operands }
+type op1, type op2
+
+#### **Accumulator** {: #no-nav-example-acc }
+oldvalue → newvalue
+
+#### **Stack Pointer (Register)** {: #no-nav-example-sp }
+oldvalue → newvalue
+
+#### **Stack** {: #no-nav-example-stack }
+[..., value1, value2] → [..., value3]
+
+#### **Description** {: #no-nav-example-desc }
+A longer description detailing constraints, the operation performed, the type of the data operated on, etc.
+
+#### **Errors** {: #no-nav-example-errors }
+A list of potential runtime errors and why they can happen.
+
+#### **Notes** {: #no-nav-example-notes }
+Comments not strictly part of the specification of an instruction are set aside as notes.
+<br><br>
+The instruction's mnemonic is its name. Its opcode is its numeric representation in hexadecimal form.
+If the opcode consists of 2 digits, it's a single byte opcode, if it consists of FF followed by 4 digits, it's a extended 3 byte opcode.
+
+## **Instructions**
 *Disclaimer: I got really bored of writing 10 versions of the same arithmetic instructions, so I had an AI do it for me.
 This means that there could be some writing inconsistencies, but the overall logic of them should be accurate.
 Readers are encouraged to suggest edits to improve clarity and consistency for these instructions.*
@@ -7,7 +54,12 @@ Readers are encouraged to suggest edits to improve clarity and consistency for t
 > ### {{ ins.name }}
 
 #### **Opcode** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }} }
-{{ ins.opcode }} ({{ '{:#x}'.format(ins.opcode) }})
+{% if ins.ext %}
+{{ "0xFF{:04X}".format(ins.opcode) }}
+{% else %}
+{{ "0x{:02X}".format(ins.opcode) }}
+{% endif %}
+
 
 #### **Operation** {: #no-nav-{{ ins.name|lower|replace(' ', '-') }}-operation }
 {{ ins.operation }}

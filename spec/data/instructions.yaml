@@ -48,7 +48,7 @@
 - name: BRK
   opcode: 0x05
   operation: Trigger debug break
-  description: When a debugger is attached, causes a breakpoint. Otherwise does nothing.
+  description: When a debugger is attached, triggers a breakpoint. Otherwise does nothing.
 
 - name: ADD
   opcode: 0x10
@@ -974,7 +974,7 @@
 
 - name: STORE
   opcode: 0x8D
-  operation: Store accumulator value to stack
+  operation: Store accumulator value in stack
   operands: i16 index
   description: |
     The way this instruction stores a value depends on whether `index` is positive or negative.<br>
@@ -985,7 +985,7 @@
 
 - name: STORE_ST
   opcode: 0x8E
-  operation: Pop value and store to stack
+  operation: Pop value and store in stack
   operands: i16 index
   stack: "[..., value] → [...]"
   description: |
@@ -994,6 +994,15 @@
     If `index` is negative (< 0), store to the stack pointer register minus the absolute value of `index` **before** the value is popped.<br>
     <br>
     For example, an `index` of -1 stores the popped value to the topmost slot before popping, while an `index` of 0 stores to the first slot.
+
+- name: RESERVE
+  opcode: 0x8F
+  operation: Reserve slots on the stack
+  operands: u8 count
+  stack: "[...] → [..., _ x count]"
+  description: |
+    Allocates `count` uninitialized slots on the stack. These slots are meant to be used for local storage.<br>
+    No values are popped or written. This operation is the equivalent of `sp += count`.
 
 - name: JMP
   opcode: 0x97
@@ -1056,7 +1065,8 @@
   stack: "[.., [arg1, ...]] → [...]"
   description: |
     Works like the [CALL_EX](#call_ex) instruction, but the target address is determined at runtime. 
-    The target address is taken from the low 32 bits of the accumulator and treated as an unsigned 32-bit integer.
+    The target address is taken from the low 32 bits of the accumulator and treated as an unsigned 32-bit integer.<br>
+    This instruction is meant to be used with dynamic method dispatch, not on its own.
 
 - name: CALL_TINY
   opcode: 0x9D

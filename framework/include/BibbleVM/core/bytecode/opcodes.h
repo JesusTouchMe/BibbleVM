@@ -141,6 +141,7 @@ namespace bibble {
         LOAD_ST = 0x8C,
         STORE = 0x8D,
         STORE_ST = 0x8E,
+        RESERVE = 0x8F,
 
         JMP = 0x97,
         JZ = 0x98,

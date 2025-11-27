@@ -11,7 +11,8 @@ theme:
 docs_dir: docs
 
 nav:
-  - Overview: index.md
+  - Overview: overview.md
+  - The BibbleVM Architecture: architecture.md
   - Instructions: instructions.md
 
 extra_css:
