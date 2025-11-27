@@ -1,0 +1,591 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../overview/">
+      
+      
+        <link rel="next" href="../instructions/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>The BibbleVM Architecture - BibbleVM Specification</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#the-bibblevm-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="BibbleVM Specification" class="md-header__button md-logo" aria-label="BibbleVM Specification" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BibbleVM Specification
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              The BibbleVM Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="BibbleVM Specification" class="md-nav__button md-logo" aria-label="BibbleVM Specification" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BibbleVM Specification
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The BibbleVM Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The BibbleVM Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-bibble-bytecode-executable-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Bibble Bytecode Executable Format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#integral-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integral Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#floating-point-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Floating-Point Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-handle-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Handle Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-pointer-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Pointer Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-reference-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Reference Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-data-areas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Data Areas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime Data Areas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-acc-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The acc Register
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-sp-register" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The sp Register
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../instructions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Instructions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="the-bibblevm-architecture"><strong>The BibbleVM Architecture</strong></h1>
+<p>This page describes an abstract machine, not any particular implementation of BibbleVM.</p>
+<h2 id="the-bibble-bytecode-executable-format"><strong>The Bibble Bytecode Executable Format</strong></h2>
+<p>Also known as the <code>bbx</code> format. Compiled code for the BibbleVM is represented using a hardware- and OS-independent binary format, typically stored in a file. 
+The <code>bbx</code> file format defines the data, instructions and exported symbols within a BibbleVM executable or library. 
+This format also includes details such as byte ordering that might not exist in a platform-dependent object file format.
+<br><br>
+The <code>bbx</code> format is covered in more detail in <a href="../bbx-format/">"The bbx File Format"</a>.</p>
+<h2 id="data-types"><strong>Data Types</strong></h2>
+<p>BibbleVM operates on 4 kinds of types: <em>primitive types</em>, the <em>handle</em> type, the <em>pointer</em> type and <em>reference types</em>. However, these are all stored in the same 64-bit value slots.<br>
+The primitive types are: <em>integral types</em> and <em>floating-point types</em> (see below).
+<br><br>
+BibbleVM expects that all type checking is done at compile time, and does not have to be done by the VM. 
+Values do not need to be inspectable to have their types determined at runtime. 
+Instead, the instruction set distinguishes its operand types using instructions intended to operate on specific types.
+For example, <code>add</code> and <code>fadd</code> are both instructions that add two numeric values and produce numeric results, but they're specialized for different operand types: <em>integer</em> and <em>float</em> respectively.
+<br><br>
+BibbleVM has explicit support for objects. An object is a dynamically allocated class whose memory is handled by the automatic storage manager and its VM type is <code>reference</code>.<br>
+BibbleVM also has explicit support for manual memory allocation. Manual memory is mainly meant for array allocation, but can be used for small structures to save the automatic storage manager time. 
+Its VM type is <code>pointer</code>, but is not required to be represented as a real platform-dependent memory pointer.</p>
+<h3 id="integral-types"><strong>Integral Types</strong></h3>
+<p>Integrals in BibbleVM are 64-bit signed two's-complement integers with instructions to shrink their values down to 8-, 16- or 32-bit.</p>
+<h3 id="floating-point-types"><strong>Floating-Point Types</strong></h3>
+<p>Floating-points (or "floats") in BibbleVM are 64-bit double-precision format IEEE 754 values as specified in the IEEE standard.</p>
+<h3 id="the-handle-type"><strong>The Handle Type</strong></h3>
+<p>Unfortunately, BibbleVM can't be fully platform-independent, and at a certain point, it must interact with its host platform.<br>
+The <em>handle</em> type provides a way to pass around opaque platform-dependent values, such as Windows <code>HANDLE</code>s or Unix file descriptors, without exposing their internals.
+<br><br>
+The <em>handle</em> type is stored as a 64-bit value like other VM values.
+<br><br>
+In combination with implementation-defined trap routines, handles act as the bridge between low-level libraries and the underlying systems, usually without requiring platform-dependent code to be loaded.</p>
+<h3 id="the-pointer-type"><strong>The Pointer Type</strong></h3>
+<p>The <em>pointer</em> type represents manually managed memory in BibbleVM.<br>
+A <em>pointer</em> value refers to a region of memory allocated manually through the use of <code>alloc</code> instructions, and its lifetime is controlled entirely by the program.<br>
+BibbleVM never automatically frees manual memory and never performs any pointer-based garbage collection.
+<br><br>
+The <em>pointer</em> type is stored as a 64-bit standard value, but its internal representation is implementation-defined.<br>
+They are <strong>not</strong> required to correspond to raw machine addresses and may instead be offsets, handles into an internal heap or other abstract identifiers.
+<br><br>
+Unlike typical pointers, performing pointer arithmetic is not explicitly supported and will lead to undefined behavior.
+<br><br>
+Because pointer-based memory is untyped, BibbleVM performs no automatic type checking, but might perform automatic bounds checks or pointer validation depending on safety settings.
+All safety and memory discipline is the responsibility of the compiler and user code.<br>
+Typical uses include array storage, temporary buffers, and low-level data manipulation that benefits from avoiding garbage collection overhead.
+<br><br>
+BibbleVM instructions that interact with pointer-based memory operate on <em>raw bytes</em> and an offset from the base pointer.</p>
+<h3 id="the-reference-type"><strong>The Reference Type</strong></h3>
+<p>The <em>reference</em> type represents objects allocated by the automatic storage manager.<br>
+A <em>reference</em> value is essentially a pointer to a heap-allocated instance of a class, and its lifetime is tracked by BibbleVM's automatic storage manager.<br>
+A <em>reference</em> always identifies a fully typed object with a known class layout including fields, methods and an optional destructor.
+<br><br>
+The <em>reference</em> type is stored as a 64-bit standard value, but unlike pointers, the VM is responsible for their reachability analysis and destruction using conservative garbage collection.
+<br><br>
+Because <em>references</em> carry type information, instructions that operate on objects might perform automatic type checking depending on safety settings.
+BibbleVM still offers instructions to let the program perform manual type checking.<br>
+BibbleVM ensures memory safety for automatically managed objects.</p>
+<h2 id="runtime-data-areas"><strong>Runtime Data Areas</strong></h2>
+<p>BibbleVM defines several runtime data areas that are used during the execution of a program. Some of these are global while others are per thread.
+Global data areas are created when the VM starts and destroyed when the VM exits and per thread data areas are created when a thread is created and destroyed when the thread exits.</p>
+<h3 id="the-acc-register"><strong>The <code>acc</code> Register</strong></h3>
+<p><code>acc</code> is short for <code>accumulator</code>.
+Each BibbleVM thread has its own <code>acc</code> register which holds exactly one 64-bit value.<br>
+The <code>acc</code> register is <strong>volatile</strong>: its contents are not preserved across calls. During a function call, the caller must assume the contents of the <code>acc</code> register is overridden by the callee.</p>
+<h3 id="the-sp-register"><strong>The <code>sp</code> Register</strong></h3>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
